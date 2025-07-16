@@ -1,0 +1,112 @@
+{
+  "name": "beta-09",
+  "api": {
+    "baseUrl": "https://beta-09.b2bdev.pro",
+    "capCredentials": {
+      "username": "admin",
+      "password": "admin"
+    },
+    "manager": {
+      "secret": "d350a88f06bc4418f1e1d61c9fcd3f6cce60b5113f11ffa47348a15a1acbd92c",
+      "casinoId": "719180037cfb65df5546f4b61dbfcf82"
+    },
+    "concurrency": {
+      "requestTimeoutMs": 1000,
+      "defaultRequestCount": 2
+    }
+  },
+  "platform": {
+    "currency": "EUR",
+    "country": "LV",
+    "nodeId": "068f20a5-7c0a-4226-bf5e-6648c735a12b",
+    "groupId": "4c59ecfb-9571-4d2e-8e8b-4558636049fc"
+  },
+  "databases": {
+    "core": {
+      "host": "mysql-development-01.b2bdev.pro",
+      "port": 3306,
+      "username": "qa_auto",
+      "password": "HoxTNjfnZsGt"
+      "retryTimeoutSeconds": 10,
+      "retryPollIntervalMs": 100,
+      "retryPollDelayMs": 100
+    },
+    "wallet": {
+      "host": "mysql-development-01.b2bdev.pro",
+      "port": 3306,
+      "username": "qa_auto",
+      "password": "HoxTNjfnZsGt"
+      "retryTimeoutSeconds": 10,
+      "retryPollIntervalMs": 100,
+      "retryPollDelayMs": 100
+    }
+  },
+  "redis": {
+      "aggregate": {
+      "maxGamblingCount": 50,
+      "maxIframeCount": 500,
+      "retryAttempts": 10,
+      "retryDelayMs": 200
+    },
+    "instances": {
+      "player": {
+        "host": "redis-01.b2bdev.pro",
+        "port": 6389,
+        "database": 9,
+        "timeout": "5000ms",
+        "lettucePool": {
+          "maxActive": 8,
+          "maxIdle": 8,
+          "minIdle": 0,
+          "shutdownTimeout": "100ms"
+        }
+      },
+      "wallet": {
+        "host": "redis-01.b2bdev.pro",
+        "port": 6390,
+        "database": 9,
+        "timeout": "5000ms",
+        "lettucePool": {
+          "maxActive": 8,
+          "maxIdle": 8,
+          "minIdle": 0,
+          "shutdownTimeout": "100ms"
+        }
+      }
+    }
+  },
+  "kafka": {
+    "bootstrapServer": "kafka-development-01.b2bdev.pro:9092,kafka-development-02.b2bdev.pro:9092,kafka-development-03.b2bdev.pro:9092",
+    "groupId": "cb-wallet-test-consumer-beta-09",
+    "listenTopicSuffixes": [
+      "player.v1.account",
+      "wallet.v8.projectionSource",
+      "core.gambling.v1.GameSessionStart",
+      "limits.v2"
+    ],
+    "bufferSize": 500,
+    "findMessageTimeout": "PT60S",
+    "findMessageSleepInterval": "PT0.2S",
+    "pollDuration": "PT1S",
+    "seekToEndOnStart": true,
+    "shutdownTimeout": "PT5S",
+    "autoOffsetReset": "latest",
+    "enableAutoCommit": true
+  },
+  "nats": {
+    "hosts": [
+      "nats://nats-development-01.b2bdev.pro:4222",
+      "nats://nats-development-02.b2bdev.pro:4222",
+      "nats://nats-development-03.b2bdev.pro:4222"
+    ],
+    "streamName": "wallet",
+    "subscriptionRetryCount": 3,
+    "subscriptionRetryDelayMs": 1000,
+    "connectReconnectWaitSeconds": 5,
+    "connectMaxReconnects": 10,
+    "searchTimeoutSeconds": 10,
+    "subscriptionAckWaitSeconds": 60,
+    "subscriptionInactiveThresholdSeconds": 90,
+    "subscriptionBufferSize": 1000
+  }
+}

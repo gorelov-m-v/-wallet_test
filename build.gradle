@@ -1,0 +1,116 @@
+plugins {
+        id 'java'
+        id 'org.springframework.boot' version '3.4.4'
+        id 'io.spring.dependency-management' version '1.1.7'
+        id "io.qameta.allure" version "2.11.2"
+}
+
+group = 'com.uplatform'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+	testAnnotationProcessor.extendsFrom annotationProcessor
+}
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	set('springCloudVersion', "2024.0.1")
+	set('allureVersion', '2.29.0')
+	set('aspectjVersion', '1.9.22.1')
+	set('lombokVersion', '1.18.34')
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+	implementation 'com.mysql:mysql-connector-j'
+
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+	implementation 'io.github.openfeign:feign-okhttp'
+
+	implementation 'org.springframework.kafka:spring-kafka'
+
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+	implementation 'com.fasterxml.jackson.module:jackson-module-parameter-names'
+
+	implementation 'com.google.protobuf:protobuf-java:4.28.2'
+
+	implementation "org.aspectj:aspectjweaver:${aspectjVersion}"
+
+        implementation 'io.nats:jnats:2.21.1'
+        implementation 'org.awaitility:awaitility:4.2.1'
+        implementation 'com.jayway.jsonpath:json-path:2.9.0'
+
+	compileOnly "org.projectlombok:lombok:${lombokVersion}"
+	annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+	testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+	testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.apache.commons:commons-pool2'
+	testImplementation 'io.qameta.allure:allure-junit5:2.29.1'
+	testImplementation 'org.skyscreamer:jsonassert:1.5.1'
+	testImplementation 'com.oracle.database.jdbc:ucp:21.15.0.0'
+	testImplementation 'com.mchange:c3p0:0.9.5.5'
+
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+		mavenBom "io.qameta.allure:allure-bom:${allureVersion}"
+	}
+}
+
+allure {
+        version = allureVersion
+}
+
+tasks.named('test', Test) {
+	useJUnitPlatform {
+		if (project.hasProperty('includeTags')) {
+			def tagsToInclude = project.property('includeTags').split(',').collect { it.trim() } as String[]
+			includeTags tagsToInclude
+		}
+		if (project.hasProperty('excludeTags')) {
+			def tagsToExclude = project.property('excludeTags').split(',').collect { it.trim() } as String[]
+			excludeTags tagsToExclude
+		}
+	}
+
+	if (project.hasProperty('env')) {
+		systemProperty 'env', project.getProperty('env')
+	}
+
+	systemProperty 'file.encoding', 'UTF-8'
+	if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+		systemProperty 'console.encoding', 'UTF-8'
+	}
+
+	testLogging {
+		events "passed", "skipped", "failed"
+		showStandardStreams = true
+		exceptionFormat = 'full'
+	}
+}
+
+tasks.named('bootRun') {
+	jvmArgs = ["-Dfile.encoding=UTF-8"]
+}
