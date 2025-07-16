@@ -237,7 +237,7 @@ class BlockersNegativeParametrizedTest {
                                 assertTrue(error.getErrors().containsKey(expectedField), "cap_api.error.errors.key");
                                 var actualErrorMessagesList = error.getErrors().get(expectedField);
                                 if (expectedErrorMessagesList != null && !expectedErrorMessagesList.isEmpty()) {
-                                    var expectedFirstMessage = expectedErrorMessagesList.getFirst();
+                                    var expectedFirstMessage = expectedErrorMessagesList.get(0);
                                     assertTrue(actualErrorMessagesList.contains(expectedFirstMessage), "cap_api.error.errors.value");
                                 }
                             });

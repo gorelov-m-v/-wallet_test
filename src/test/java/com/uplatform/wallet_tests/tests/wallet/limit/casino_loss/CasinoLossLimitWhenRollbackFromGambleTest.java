@@ -187,9 +187,9 @@ class CasinoLossLimitWhenRollbackFromGambleTest {
                     (int) testData.rollbackEvent.getSequence());
 
             assertAll(
-                    () -> assertEquals(0, testData.expectedRestAmountAfterRollback.compareTo(aggregate.getLimits().getFirst().getRest()), "redis.limit.rest"),
-                    () -> assertEquals(0, testData.expectedSpentAmountAfterRollback.compareTo(aggregate.getLimits().getFirst().getSpent()), "redis.limit.spent"),
-                    () -> assertEquals(0, testData.limitAmount.compareTo(aggregate.getLimits().getFirst().getAmount()), "redis.limit.amount")
+                    () -> assertEquals(0, testData.expectedRestAmountAfterRollback.compareTo(aggregate.getLimits().get(0).getRest()), "redis.limit.rest"),
+                    () -> assertEquals(0, testData.expectedSpentAmountAfterRollback.compareTo(aggregate.getLimits().get(0).getSpent()), "redis.limit.spent"),
+                    () -> assertEquals(0, testData.limitAmount.compareTo(aggregate.getLimits().get(0).getAmount()), "redis.limit.amount")
             );
         });
     }

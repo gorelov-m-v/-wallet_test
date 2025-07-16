@@ -178,7 +178,7 @@ public class TurnoverLimitCreateParametrizedTest {
             BiPredicate<NatsLimitChangedV2Payload, String> filter = (payload, typeHeader) ->
                     NatsEventType.LIMIT_CHANGED_V2.getHeaderValue().equals(typeHeader) &&
                             payload.getLimits() != null && !payload.getLimits().isEmpty() &&
-                            testData.kafkaLimitMessage.getId().equals(payload.getLimits().getFirst().getExternalId());
+                            testData.kafkaLimitMessage.getId().equals(payload.getLimits().get(0).getExternalId());
 
             testData.natsLimitChangeEvent = natsClient.findMessageAsync(subject, NatsLimitChangedV2Payload.class, filter).get();
             assertNotNull(testData.natsLimitChangeEvent, "nats.limit_changed_v2_event.message_not_null");
@@ -186,7 +186,7 @@ public class TurnoverLimitCreateParametrizedTest {
             assertNotNull(testData.natsLimitChangeEvent.getPayload().getLimits(), "nats.limit_changed_v2_event.payload.limits_list_not_null");
             assertFalse(testData.natsLimitChangeEvent.getPayload().getLimits().isEmpty(), "nats.limit_changed_v2_event.payload.limits_list_not_empty");
 
-            var natsLimit = testData.natsLimitChangeEvent.getPayload().getLimits().getFirst();
+            var natsLimit = testData.natsLimitChangeEvent.getPayload().getLimits().get(0);
             assertAll("nats.limit_changed_v2_event.content_validation",
                     () -> assertEquals(NatsLimitEventType.CREATED.getValue(), testData.natsLimitChangeEvent.getPayload().getEventType(), "nats.limit_changed_v2_event.payload.eventType"),
                     () -> assertEquals(testData.kafkaLimitMessage.getId(), natsLimit.getExternalId(), "nats.limit_changed_v2_event.limit.externalId"),
@@ -216,14 +216,14 @@ public class TurnoverLimitCreateParametrizedTest {
 
             var redisLimitOpt = aggregate.getLimits().stream()
                     .filter(l ->
-                            testData.natsLimitChangeEvent.getPayload().getLimits().getFirst().getExternalId().equals(l.getExternalID()))
+                            testData.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId().equals(l.getExternalID()))
                     .findFirst();
 
             assertTrue(redisLimitOpt.isPresent(), "redis.wallet_aggregate.turnover_limit_found_period_" + periodType.getValue());
             var redisLimit = redisLimitOpt.get();
 
             assertAll("redis.wallet_aggregate.limit_content_validation",
-                    () -> assertEquals(testData.natsLimitChangeEvent.getPayload().getLimits().getFirst().getExternalId(), redisLimit.getExternalID(), "redis.wallet_aggregate.limit.externalId"),
+                    () -> assertEquals(testData.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId(), redisLimit.getExternalID(), "redis.wallet_aggregate.limit.externalId"),
                     () -> assertEquals(NatsLimitType.TURNOVER_FUNDS.getValue(), redisLimit.getLimitType(), "redis.wallet_aggregate.limit.limitType"),
                     () -> assertEquals(periodType.getValue(), redisLimit.getIntervalType(), "redis.wallet_aggregate.limit.intervalType"),
                     () -> assertEquals(0, limitAmountBase.compareTo(redisLimit.getAmount()), "redis.wallet_aggregate.limit.amount"),
@@ -281,7 +281,7 @@ public class TurnoverLimitCreateParametrizedTest {
 
             var fapiLimitOpt = response.getBody().stream()
                     .filter(l -> {
-                        boolean idMatch = testData.natsLimitChangeEvent.getPayload().getLimits().getFirst().getExternalId().equals(l.getId());
+                        boolean idMatch = testData.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId().equals(l.getId());
                         boolean typeMatch = periodType.getValue().equalsIgnoreCase(l.getType());
                         return idMatch && typeMatch;
                     })
@@ -291,7 +291,7 @@ public class TurnoverLimitCreateParametrizedTest {
             var fapiLimit = fapiLimitOpt.get();
 
             assertAll("fapi.get_turnover_limits.limit_content_validation",
-                    () -> assertEquals(testData.natsLimitChangeEvent.getPayload().getLimits().getFirst().getExternalId(), fapiLimit.getId(), "fapi.get_turnover_limits.limit.id"),
+                    () -> assertEquals(testData.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId(), fapiLimit.getId(), "fapi.get_turnover_limits.limit.id"),
                     () -> assertEquals(periodType.getValue(), fapiLimit.getType(), "fapi.get_turnover_limits.limit.type_period"),
                     () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), fapiLimit.getCurrency(), "fapi.get_turnover_limits.limit.currency"),
                     () -> assertTrue(fapiLimit.isStatus(), "fapi.get_turnover_limits.limit.status_is_true"),

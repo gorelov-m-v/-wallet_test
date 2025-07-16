@@ -215,7 +215,7 @@ public class PlayerFullRegistrationStep {
             assertEquals(HttpStatus.OK, response.getStatusCode(), "fapi.get_verification_status.status_code");
             assertNotNull(response.getBody(), "fapi.get_verification_status.body_not_null");
             assertFalse(response.getBody().isEmpty(), "fapi.get_verification_status.body_not_empty");
-            testData.verificationStatus = response.getBody().getFirst();
+            testData.verificationStatus = response.getBody().get(0);
         });
 
         step("CAP API: Обновление статуса верификации", () -> {

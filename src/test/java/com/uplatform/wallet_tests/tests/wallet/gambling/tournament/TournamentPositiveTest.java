@@ -146,10 +146,10 @@ class TournamentPositiveTest {
                     () -> assertTrue(testData.tournamentEvent.getPayload().getWageredDepositInfo().isEmpty(), "nats.payload.wagered_deposit_info"),
                     () -> assertEquals(0, tournamentAmount.compareTo(testData.tournamentEvent.getPayload().getCurrencyConversionInfo().getGameAmount()), "nats.payload.currency_conversion.game_amount"),
                     () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.tournamentEvent.getPayload().getCurrencyConversionInfo().getGameCurrency(), "nats.payload.currency_conversion.game_currency"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.tournamentEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getBaseCurrency(), "nats.payload.currency_conversion.base_currency"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.tournamentEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getQuoteCurrency(), "nats.payload.currency_conversion.quote_currency"),
-                    () -> assertEquals(expectedCurrencyRates, testData.tournamentEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getValue(), "nats.payload.currency_conversion.rate_value"),
-                    () -> assertNotNull(testData.tournamentEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getUpdatedAt(), "nats.payload.currency_conversion.updated_at")
+                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.tournamentEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getBaseCurrency(), "nats.payload.currency_conversion.base_currency"),
+                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.tournamentEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getQuoteCurrency(), "nats.payload.currency_conversion.quote_currency"),
+                    () -> assertEquals(expectedCurrencyRates, testData.tournamentEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getValue(), "nats.payload.currency_conversion.rate_value"),
+                    () -> assertNotNull(testData.tournamentEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getUpdatedAt(), "nats.payload.currency_conversion.updated_at")
             );
         });
 

@@ -135,9 +135,9 @@ class TurnoverLimitWhenLossFromIframeTest {
                 BiPredicate<NatsLimitChangedV2Payload, String> filter = (payload, typeHeader) ->
                         NatsEventType.LIMIT_CHANGED_V2.getHeaderValue().equals(typeHeader) &&
                                 payload.getLimits() != null && !payload.getLimits().isEmpty() &&
-                                NatsLimitType.TURNOVER_FUNDS.getValue().equals(payload.getLimits().getFirst().getLimitType()) &&
-                                NatsLimitIntervalType.DAILY.getValue().equals(payload.getLimits().getFirst().getIntervalType()) &&
-                                request.getCurrency().equals(payload.getLimits().getFirst().getCurrencyCode());
+                                NatsLimitType.TURNOVER_FUNDS.getValue().equals(payload.getLimits().get(0).getLimitType()) &&
+                                NatsLimitIntervalType.DAILY.getValue().equals(payload.getLimits().get(0).getIntervalType()) &&
+                                request.getCurrency().equals(payload.getLimits().get(0).getCurrencyCode());
 
                 testData.limitCreateEvent = natsClient.findMessageAsync(subject, NatsLimitChangedV2Payload.class, filter).get();
 
