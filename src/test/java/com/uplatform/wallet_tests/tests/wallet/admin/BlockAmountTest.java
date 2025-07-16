@@ -145,7 +145,7 @@ class BlockAmountTest {
                     testData.registeredPlayer.getWalletData().getWalletUUID(),
                     (int) testData.blockAmountEvent.getSequence());
 
-            var blockedAmountInfo = aggregate.getBlockedAmounts().getFirst();
+            var blockedAmountInfo = aggregate.getBlockedAmounts().get(0);
             var responseBody = testData.blockAmountResponse.getBody();
             var expectedBalance = adjustmentAmount.subtract(blockAmount);
 
@@ -175,7 +175,7 @@ class BlockAmountTest {
                     testData.registeredPlayer.getWalletData().getPlayerUUID());
 
             var expectedTxId = testData.blockAmountResponse.getBody().getTransactionId();
-            var createdItem = response.getBody().getItems().getFirst();
+            var createdItem = response.getBody().getItems().get(0);
             var player = testData.registeredPlayer.getWalletData();
 
             assertAll("Проверка данных созданной блокировки",

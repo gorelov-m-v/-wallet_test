@@ -285,10 +285,10 @@ class RefundParametrizedTest {
                     () -> assertTrue(testData.refundEvent.getPayload().getWageredDepositInfo().isEmpty(), "nats.refund.wagered_deposit_info"),
                     () -> assertEquals(0, testData.refundAmount.compareTo(testData.refundEvent.getPayload().getCurrencyConversionInfo().getGameAmount()), "nats.refund.game_amount"),
                     () -> assertFalse(testData.refundEvent.getPayload().getCurrencyConversionInfo().getGameCurrency().isEmpty(), "nats.refund.game_currency"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.refundEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getBaseCurrency(), "nats.refund.base_currency"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.refundEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getQuoteCurrency(), "nats.refund.quote_currency"),
-                    () -> assertEquals(testData.expectedCurrencyRates, testData.refundEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getValue(), "nats.refund.currency_rates"),
-                    () -> assertNotNull(testData.refundEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getUpdatedAt(), "nats.refund.updated_at")
+                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.refundEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getBaseCurrency(), "nats.refund.base_currency"),
+                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.refundEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getQuoteCurrency(), "nats.refund.quote_currency"),
+                    () -> assertEquals(testData.expectedCurrencyRates, testData.refundEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getValue(), "nats.refund.currency_rates"),
+                    () -> assertNotNull(testData.refundEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getUpdatedAt(), "nats.refund.updated_at")
             );
         });
 

@@ -159,9 +159,9 @@ class CasinoLossLimitWhenTournamentFromGambleTest {
                     (int) testData.tournamentEvent.getSequence());
 
             assertAll(
-                    () -> assertEquals(0, testData.expectedRestAmountAfterTournament.compareTo(aggregate.getLimits().getFirst().getRest()), "redis.wallet.limit.rest"),
-                    () -> assertEquals(0, testData.expectedSpentAmountAfterTournament.compareTo(aggregate.getLimits().getFirst().getSpent()), "redis.wallet.limit.spent"),
-                    () -> assertEquals(0, testData.limitAmount.compareTo(aggregate.getLimits().getFirst().getAmount()), "redis.wallet.limit.amount")
+                    () -> assertEquals(0, testData.expectedRestAmountAfterTournament.compareTo(aggregate.getLimits().get(0).getRest()), "redis.wallet.limit.rest"),
+                    () -> assertEquals(0, testData.expectedSpentAmountAfterTournament.compareTo(aggregate.getLimits().get(0).getSpent()), "redis.wallet.limit.spent"),
+                    () -> assertEquals(0, testData.limitAmount.compareTo(aggregate.getLimits().get(0).getAmount()), "redis.wallet.limit.amount")
             );
         });
     }

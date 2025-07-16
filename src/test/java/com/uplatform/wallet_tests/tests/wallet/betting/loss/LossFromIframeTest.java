@@ -177,8 +177,8 @@ class LossFromIframeTest {
                     () -> assertTrue(actualPayload.getWageredDepositInfo().isEmpty(), "nats.payload.wagered_deposit_info")
             );
 
-            var expectedBetInfo = expectedBetInfoList.getFirst();
-            var actualBetInfo = actualPayload.getBetInfo().getFirst();
+            var expectedBetInfo = expectedBetInfoList.get(0);
+            var actualBetInfo = actualPayload.getBetInfo().get(0);
             assertAll("Проверка полей внутри bet_info NATS payload",
                     () -> assertEquals(expectedBetInfo.getChampId(), actualBetInfo.getChampId(), "nats.payload.bet_info.champId"),
                     () -> assertEquals(expectedBetInfo.getChampName(), actualBetInfo.getChampName(), "nats.payload.bet_info.champ_name"),
@@ -216,7 +216,7 @@ class LossFromIframeTest {
 
             var lossEventPayload = testData.lossNatsEvent.getPayload();
             var player = testData.registeredPlayer.getWalletData();
-            var betInfo = lossEventPayload.getBetInfo().getFirst();
+            var betInfo = lossEventPayload.getBetInfo().get(0);
 
             var actualDbBetInfoList = objectMapper
                     .readValue(dbTransaction.getBetInfo(),

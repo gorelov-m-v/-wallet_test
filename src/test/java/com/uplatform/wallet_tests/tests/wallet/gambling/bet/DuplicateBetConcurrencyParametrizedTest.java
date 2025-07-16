@@ -153,7 +153,7 @@ class DuplicateBetConcurrencyParametrizedTest {
                         }
                     }).collect(Collectors.toList());
 
-            var response1 = results.getFirst();
+            var response1 = results.get(0);
             var response2 = results.get(1);
             var body1 = response1.getBody();
             var body2 = response2.getBody();
