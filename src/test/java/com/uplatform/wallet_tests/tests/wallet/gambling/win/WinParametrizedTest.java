@@ -275,7 +275,7 @@ class WinParametrizedTest {
             );
 
             var conversionInfo = winEventPayload.getCurrencyConversionInfo();
-            var currencyRates = conversionInfo.getCurrencyRates().getFirst();
+            var currencyRates = conversionInfo.getCurrencyRates().get(0);
 
             assertAll("Проверка полей внутри currency_conversion_info NATS payload",
                     () -> assertEquals(0, winAmountParam.compareTo(conversionInfo.getGameAmount()), "currency_conversion_info.game_amount"),

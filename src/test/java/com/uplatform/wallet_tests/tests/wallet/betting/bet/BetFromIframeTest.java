@@ -168,8 +168,8 @@ class BetFromIframeTest {
                     () -> assertTrue(actualPayload.getWageredDepositInfo().isEmpty(), "nats.payload.wagered_deposit_info")
             );
 
-            var expectedBetInfo = expectedBetInfoList.getFirst();
-            var actualBetInfo = actualPayload.getBetInfo().getFirst();
+            var expectedBetInfo = expectedBetInfoList.get(0);
+            var actualBetInfo = actualPayload.getBetInfo().get(0);
             assertAll("Проверка полей внутри bet_info NATS payload",
                     () -> assertEquals(expectedBetInfo.getChampId(), actualBetInfo.getChampId(), "nats.payload.bet_info.champId"),
                     () -> assertEquals(expectedBetInfo.getChampName(), actualBetInfo.getChampName(), "nats.payload.bet_info.champ_name"),
@@ -208,7 +208,7 @@ class BetFromIframeTest {
 
             var betEvent = testData.betEvent.getPayload();
             var player = testData.registeredPlayer.getWalletData();
-            var betInfo = betEvent.getBetInfo().getFirst();
+            var betInfo = betEvent.getBetInfo().get(0);
 
             var actualDbBetInfoList = objectMapper
                     .readValue(dbTransaction.getBetInfo(),
@@ -242,7 +242,7 @@ class BetFromIframeTest {
                     testData.registeredPlayer.getWalletData().getWalletUUID(),
                     (int) testData.betEvent.getSequence());
 
-            var actualBetInfo = aggregate.getIFrameRecords().getFirst();
+            var actualBetInfo = aggregate.getIFrameRecords().get(0);
             var expectedBetInfo = testData.betEvent.getPayload();
 
             assertAll("Проверка изменения агрегата, после обработки ставки",

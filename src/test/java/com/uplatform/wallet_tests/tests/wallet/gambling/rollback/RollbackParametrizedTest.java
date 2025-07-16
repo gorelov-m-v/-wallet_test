@@ -287,10 +287,10 @@ class RollbackParametrizedTest {
                     () -> assertTrue(testData.rollbackEvent.getPayload().getWageredDepositInfo().isEmpty(), "nats.rollback.wagered_deposit_info"),
                     () -> assertEquals(0, testData.rollbackAmount.compareTo(testData.rollbackEvent.getPayload().getCurrencyConversionInfo().getGameAmount()), "nats.rollback.game_amount"),
                     () -> assertFalse(testData.rollbackEvent.getPayload().getCurrencyConversionInfo().getGameCurrency().isEmpty(), "nats.rollback.game_currency"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.rollbackEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getBaseCurrency(), "nats.rollback.base_currency"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.rollbackEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getQuoteCurrency(), "nats.rollback.quote_currency"),
-                    () -> assertEquals(testData.expectedCurrencyRates, testData.rollbackEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getValue(), "nats.rollback.currency_rates"),
-                    () -> assertNotNull(testData.rollbackEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().getFirst().getUpdatedAt(), "nats.rollback.updated_at")
+                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.rollbackEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getBaseCurrency(), "nats.rollback.base_currency"),
+                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.rollbackEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getQuoteCurrency(), "nats.rollback.quote_currency"),
+                    () -> assertEquals(testData.expectedCurrencyRates, testData.rollbackEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getValue(), "nats.rollback.currency_rates"),
+                    () -> assertNotNull(testData.rollbackEvent.getPayload().getCurrencyConversionInfo().getCurrencyRates().get(0).getUpdatedAt(), "nats.rollback.updated_at")
             );
         });
 

@@ -139,7 +139,7 @@ class DeleteBlockAmountTest {
             assertAll("Проверка наличия созданной блокировки в списке",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "cap_api.status_code"),
                     () -> assertFalse(response.getBody().getItems().isEmpty(), "cap_api.block_amount_list.not_empty"),
-                    () -> assertEquals(expectedTxId, response.getBody().getItems().getFirst().getTransactionId(), "cap_api.block_amount_list.transaction_id")
+                    () -> assertEquals(expectedTxId, response.getBody().getItems().get(0).getTransactionId(), "cap_api.block_amount_list.transaction_id")
             );
         });
 

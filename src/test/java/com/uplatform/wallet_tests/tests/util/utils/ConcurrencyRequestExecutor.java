@@ -121,8 +121,8 @@ public class ConcurrencyRequestExecutor {
                     .collect(Collectors.toList());
 
             if (successes.size() == 1 && feignErrors.size() == 1) {
-                successfulResponse = successes.getFirst();
-                feignException = feignErrors.getFirst();
+                successfulResponse = successes.get(0);
+                feignException = feignErrors.get(0);
                 patternMatched = true;
             } else {
                 log.warn("Expected 1 successful response and 1 FeignException (for {} concurrent requests), but found {} successes and {} FeignExceptions. Raw results: {}",

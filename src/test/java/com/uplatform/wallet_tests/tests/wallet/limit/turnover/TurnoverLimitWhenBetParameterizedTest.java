@@ -209,7 +209,7 @@ class TurnoverLimitWhenBetParameterizedTest {
 
                 BiPredicate<NatsLimitChangedV2Payload, String> filter = (payload, typeHeader) ->
                         NatsEventType.LIMIT_CHANGED_V2.getHeaderValue().equals(typeHeader) &&
-                                NatsLimitType.TURNOVER_FUNDS.getValue().equals(payload.getLimits().getFirst().getLimitType());
+                                NatsLimitType.TURNOVER_FUNDS.getValue().equals(payload.getLimits().get(0).getLimitType());
 
                 testData.limitCreateEvent = natsClient.findMessageAsync(subject, NatsLimitChangedV2Payload.class, filter).get();
 
