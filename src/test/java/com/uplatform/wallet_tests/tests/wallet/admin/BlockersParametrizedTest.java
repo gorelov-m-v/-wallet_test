@@ -20,6 +20,7 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
@@ -58,7 +59,12 @@ class BlockersParametrizedTest {
     @Autowired private DefaultTestSteps defaultTestSteps;
     @Autowired private EnvironmentConfigurationProvider configProvider;
 
-    private final String platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
+    private String platformNodeId;
+
+    @BeforeAll
+    void setupGlobalTestData() {
+        this.platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
+    }
 
     static Stream<Arguments> blockersProvider() {
         return Stream.of(

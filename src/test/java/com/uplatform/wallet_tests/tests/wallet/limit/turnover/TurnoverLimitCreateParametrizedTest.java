@@ -151,11 +151,12 @@ public class TurnoverLimitCreateParametrizedTest {
         });
 
         step("Kafka: Проверка получения события limits.v2", () -> {
+            var expectedAmount = limitAmountBase.stripTrailingZeros().toPlainString();
             testData.kafkaLimitMessage = limitKafkaClient.expectLimitMessage(
                     testData.registeredPlayer.getWalletData().getPlayerUUID(),
                     NatsLimitType.TURNOVER_FUNDS.getValue(),
                     testData.registeredPlayer.getWalletData().getCurrency(),
-                    limitAmountBase.toString()
+                    expectedAmount
             );
 
             assertNotNull(testData.kafkaLimitMessage, "kafka.limits_v2_event.message_not_null");

@@ -59,7 +59,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *   <li>Первый рефанд выполняется успешно (HTTP 200 OK).</li>
  *   <li>Попытка повторного рефанда (с тем же телом запроса, что и у первого)
  *       должна быть отклонена с кодом {@code HTTP 400 BAD REQUEST}
- *       и содержать ошибку {@link GamblingErrors#REFUND_ALREADY_HANDLED}</li>
+ *       и содержать ошибку {@link GamblingErrors#REFUND_NOT_ALLOWED}</li>
  * </ul>
  */
 @ExtendWith(CustomSuiteExtension.class)
@@ -155,8 +155,8 @@ class RefundAfterRefundTest {
             assertAll("manager_api.refund.double.error_validation",
                     () -> assertEquals(HttpStatus.BAD_REQUEST.value(), thrownException.status(), "manager_api.refund.status_code"),
                     () -> assertNotNull(error, "manager_api.refund.body"),
-                    () -> assertEquals(GamblingErrors.REFUND_ALREADY_HANDLED.getCode(), error.getCode(), "manager_api.refund.error_code"),
-                    () -> assertEquals(GamblingErrors.REFUND_ALREADY_HANDLED.getMessage(), error.getMessage(), "manager_api.refund.error_message")
+                    () -> assertEquals(GamblingErrors.REFUND_NOT_ALLOWED.getCode(), error.getCode(), "manager_api.refund.error_code"),
+                    () -> assertEquals(GamblingErrors.REFUND_NOT_ALLOWED.getMessage(), error.getMessage(), "manager_api.refund.error_message")
             );
         });
     }

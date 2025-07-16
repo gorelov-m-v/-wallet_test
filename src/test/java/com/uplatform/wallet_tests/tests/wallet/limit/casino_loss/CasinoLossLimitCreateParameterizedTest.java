@@ -111,11 +111,12 @@ public class CasinoLossLimitCreateParameterizedTest {
         });
 
         step("Kafka: Проверка получения события limits.v2", () -> {
+            var expectedAmount = limitAmount.stripTrailingZeros().toPlainString();
             testData.kafkaLimitMessage = limitKafkaClient.expectLimitMessage(
                     testData.registeredPlayer.getWalletData().getPlayerUUID(),
                     NatsLimitType.CASINO_LOSS.getValue(),
                     testData.registeredPlayer.getWalletData().getCurrency(),
-                    limitAmount.toString()
+                    expectedAmount
             );
 
             assertNotNull(testData.kafkaLimitMessage, "kafka.limits_v2_event.message_not_null");
