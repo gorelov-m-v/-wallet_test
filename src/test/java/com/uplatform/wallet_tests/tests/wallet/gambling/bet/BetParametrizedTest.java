@@ -249,7 +249,7 @@ class BetParametrizedTest {
             );
 
             var conversionInfo = betEvent.getCurrencyConversionInfo();
-            var currencyRates = conversionInfo.getCurrencyRates().getFirst();
+            var currencyRates = conversionInfo.getCurrencyRates().get(0);
             assertAll("Проверка полей внутри currency_conversion_info NATS payload",
                     () -> assertEquals(0, amountParam.negate().compareTo(conversionInfo.getGameAmount()), "currency_conversion_info.game_amount"),
                     () -> assertFalse(conversionInfo.getGameCurrency().isEmpty(), "currency_conversion_info.game_currency"),

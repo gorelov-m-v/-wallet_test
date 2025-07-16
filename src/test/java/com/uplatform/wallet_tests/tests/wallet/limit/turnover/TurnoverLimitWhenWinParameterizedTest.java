@@ -160,7 +160,7 @@ class TurnoverLimitWhenWinParameterizedTest {
                 BiPredicate<NatsLimitChangedV2Payload, String> filter = (payload, typeHeader) ->
                         NatsEventType.LIMIT_CHANGED_V2.getHeaderValue().equals(typeHeader) &&
                                 payload.getLimits() != null && !payload.getLimits().isEmpty() &&
-                                NatsLimitType.TURNOVER_FUNDS.getValue().equals(payload.getLimits().getFirst().getLimitType());
+                                NatsLimitType.TURNOVER_FUNDS.getValue().equals(payload.getLimits().get(0).getLimitType());
 
                 testData.limitCreateEvent = natsClient.findMessageAsync(subject, NatsLimitChangedV2Payload.class, filter).get();
                 assertNotNull(testData.limitCreateEvent, "nats.limit_changed_v2_event");

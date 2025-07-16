@@ -158,7 +158,7 @@ class CasinoLossWhenLossFromIframeTest {
                     testData.registeredPlayer.getWalletData().getWalletUUID(),
                     (int) testData.lossEvent.getSequence());
 
-            var limit = aggregate.getLimits().getFirst();
+            var limit = aggregate.getLimits().get(0);
             assertAll(
                     () -> assertEquals(0, testData.expectedRest.compareTo(limit.getRest()), "redis.aggregate.limit.rest"),
                     () -> assertEquals(0, testData.expectedSpent.compareTo(limit.getSpent()), "redis.aggregate.limit.spent"),
