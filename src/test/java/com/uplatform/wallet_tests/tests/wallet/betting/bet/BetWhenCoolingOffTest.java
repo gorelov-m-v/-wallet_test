@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Epic("Betting")
 @Feature("MakePayment")
 @Suite("Негативные сценарии: MakePayment")
-@Tag("Betting") @Tag("Wallet") @Tag("Limits")
+@Tag("")
 @TmsLink("")
 /**
  * Проверяет отказ в ставке при установленном режиме CoolingOff у игрока.

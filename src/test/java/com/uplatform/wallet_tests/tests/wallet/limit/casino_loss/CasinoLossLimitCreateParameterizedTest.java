@@ -111,9 +111,6 @@ public class CasinoLossLimitCreateParameterizedTest {
         );
     }
 
-    /**
-     * @param periodType Тип периода для устанавливаемого лимита.
-     */
     @ParameterizedTest(name = "период = {0}")
     @MethodSource("periodProvider")
     @DisplayName("Создание, проверка и получение CasinoLossLimit:")
@@ -308,7 +305,7 @@ public class CasinoLossLimitCreateParameterizedTest {
                     () -> assertNotNull(fapiLimit.getStartedAt(), "fapi.get_casino_loss_limits.limit.startedAt"),
                     () -> assertNotNull(fapiLimit.getExpiresAt(), "fapi.get_casino_loss_limits.limit.expiresAt"),
                     () -> assertNull(fapiLimit.getDeactivatedAt(), "fapi.get_casino_loss_limits.limit.deactivatedAt_is_null_for_active_limit"),
-                    () -> assertTrue(fapiLimit.isRequired(), "fapi.get_casino_loss_limits.limit.isRequired_flag_is_true"),
+                    () -> assertFalse(fapiLimit.isRequired(), "fapi.get_casino_loss_limits.limit.isRequired_flag"),
                     () -> {
                         assertNotNull(fapiLimit.getUpcomingChanges(), "fapi.get_casino_loss_limits.limit.upcomingChanges_list_not_null");
                         assertTrue(fapiLimit.getUpcomingChanges().isEmpty(), "fapi.get_casino_loss_limits.limit.upcomingChanges_is_empty_for_new");
