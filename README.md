@@ -14,16 +14,14 @@
 
 ## Оглавление
 
-*   [📖 Гайд по отправке HTTP‑запроса через Feign и проверке ответа (пример: «Ставка»)](#гайд-по-отправке-httpзапроса-и-проверке-ответа)
-    *   [1. Создать модель для тела запроса](#1-создать-модель-для-тела-запроса)
-    *   [2. Создать модель для тела ответа](#2-создать-модель-для-тела-ответа)
-    *   [3. Описать HTTP‑эндпоинт в Feign‑интерфейсе](#3-описать-httpэндпоинт-в-feignинтерфейсе)
-    *   [4. Инжектировать `ManagerClient` в тест](#4-инжектировать-managerclient-в-тест)
-    *   [5. Сформировать запрос](#5-сформировать-запрос)
-    *   [6. Отправить запрос](#6-отправить-запрос)
-    *   [7. Сделать ассерты](#7-сделать-ассерты)
-    *   [8. Автоматические логи и аттачи для Allure ✨](#8-не-переживать-за-аттачи-)
-    *   [9. Полный пример тестового класса (`BetApiTest.java`)](#9-полный-пример-тестового-класса-betapitestjava)
+*   [🌐 Работа с HTTP](#работа-с-http)
+    *   [1. Как устроена работа с HTTP](#1-как-устроена-работа-с-http)
+    *   [2. Как настроить подключение](#2-как-настроить-подключение)
+    *   [3. Где прописать базовый-url](#3-где-прописать-базовый-url)
+    *   [4. Как описать эндпоинт](#4-как-описать-эндпоинт)
+    *   [5. Пример DTO](#5-пример-dto)
+    *   [6. Пример клиента](#6-пример-клиента)
+    *   [7. Использование в тестах](#7-использование-в-тестах)
 *   [⚙️ Работа с Kafka](#работа-с-kafka)
     *   [1. Как устроена работа с Kafka](#1-как-устроена-работа-с-kafka)
     *   [2. Как настроить подключение](#2-как-настроить-подключение)
@@ -45,23 +43,59 @@
 
 ---
 
-##  Гайд по отправке HTTP‑запроса и проверке ответа
 
----
+## Работа с HTTP
 
-### 1. Создать модель для тела запроса
+### 1. Как устроена работа с HTTP
 
-Определите Java-класс, соответствующий структуре JSON тела вашего запроса. Используйте аннотации Lombok (`@Data`, `@Builder`, `@NoArgsConstructor`, `@AllArgsConstructor`) для сокращения бойлерплейт-кода.
+В основе лежат Feign-клиенты, описанные интерфейсами с аннотациями Spring MVC.
+Все такие интерфейсы собираются в бины через автоконфигурацию и доступны в
+контексте тестов. За логирование запросов и ответов отвечает конфигурация
+`AllureFeignLoggerConfig`, поэтому каждая HTTP‑операция автоматически
+добавляется в отчёт Allure вместе с телом и заголовками.
+
+### 2. Как настроить подключение
+
+Перед запуском тестов укажите системное свойство `-Denv=<имя_окружения>`.
+Нужный файл конфигурации находится в каталоге `configs`. В разделе `api`
+описываются `baseUrl`, ключи и другие параметры доступа. Класс
+`DynamicPropertiesConfigurator` читает эти значения и передаёт их в свойства
+Spring Boot.
+
+### 3. Где прописать базовый-url
+
+В файле окружения присутствует параметр `api.baseUrl`:
+
+```json
+"api": {
+  "baseUrl": "https://manager.test.host"
+}
+```
+
+### 4. Как описать эндпоинт
+
+Создайте интерфейс и пометьте его `@FeignClient`. В параметре `url` используйте
+переменную `${app.api.manager.base-url}` так, чтобы один клиент можно было
+подключать к разным окружениям. Методы описывайте стандартными аннотациями
+Spring MVC (`@GetMapping`, `@PostMapping` и др.).
 
 ```java
-package com.uplatform.example.models;
+@FeignClient(name = "managerClient", url = "${app.api.manager.base-url}")
+public interface ManagerClient {
+    @PostMapping("/_core_gas_processing/bet")
+    ResponseEntity<GamblingResponseBody> bet(
+            @RequestHeader("X-Casino-Id") String casinoId,
+            @RequestHeader("Signature") String signature,
+            @RequestBody BetRequestBody request
+    );
+}
+```
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import java.math.BigDecimal;
+### 5. Пример DTO
+Классы запросов и ответов представляют собой обычные POJO, аннотированные
+Lombok для лаконичности.
 
+```java
 @Data
 @Builder
 @NoArgsConstructor
@@ -70,22 +104,10 @@ public class BetRequestBody {
     private String     sessionToken;
     private BigDecimal amount;
     private String     transactionId;
-    private String     type;        
+    private String     type;
     private String     roundId;
     private Boolean    roundClosed;
 }
-```
-
-### 2. Создать модель для тела ответа
-Аналогично создайте Java-класс для ожидаемого JSON тела ответа.
-
-```java
-package com.uplatform.example.models; 
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
@@ -96,122 +118,43 @@ public class GamblingResponseBody {
 }
 ```
 
-### 3. Описать HTTP‑эндпоинт в Feign‑интерфейсе
-Используйте Feign для декларативного описания вашего HTTP API клиента.
-Укажите name клиента (для конфигурации Spring).
-Задайте базовый URL (url) через property ${app.api.manager.base-url}.
+### 6. Пример клиента
+Инжектируйте клиент в тестовый класс через `@Autowired`.
 
 ```java
-package com.uplatform.example.clients; 
+@Autowired
+private ManagerClient managerClient;
+```
 
-import com.yourcompany.models.BetRequestBody;
-import com.yourcompany.models.GamblingResponseBody;
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
+### 7. Использование в тестах
+Оформите запрос к API прямо в шаге `Allure.step` и сделайте проверки:
 
-@FeignClient(
-        name = "managerClient",
-        url  = "${app.api.manager.base-url}"
-)
-public interface ManagerClient {
+```java
+@Autowired
+private ManagerClient managerClient;
 
-    @PostMapping("/_core_gas_processing/bet")
-    ResponseEntity<GamblingResponseBody> bet(
-            @RequestHeader("X-Casino-Id") String casinoId,
-            @RequestHeader("Signature")   String signature,
-            @RequestBody                  BetRequestBody request
+step("HTTP: отправка запроса Bet", () -> {
+    BetRequestBody request = BetRequestBody.builder()
+            .sessionToken(sessionToken)
+            .amount(new BigDecimal("10.15"))
+            .transactionId(transactionId)
+            .type("bet")
+            .roundId(roundId)
+            .roundClosed(false)
+            .build();
+
+    ResponseEntity<GamblingResponseBody> response = managerClient.bet(
+            casinoId,
+            signature,
+            request
     );
-}
+
+    assertAll(
+            () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
+            () -> assertEquals(transactionId, response.getBody().getTransactionId())
+    );
+});
 ```
-
-### 4. Инжектировать ManagerClient в тест
-В вашем Spring Boot тесте используйте @Autowired для внедрения созданного Feign-клиента. См. полный пример теста ниже (шаг 9).
-
-### 5. Сформировать запрос
-Создайте экземпляр вашей модели запроса (BetRequestBody) с необходимыми данными. Если требуется подпись запроса (как Signature в примере), сгенерируйте ее с помощью соответствующей утилиты (здесь httpSignatureUtil). См. полный пример теста ниже (шаг 9).
-
-### 6. Отправить запрос
-Вызовите метод вашего Feign-клиента (managerClient.bet(...)), передав все необходимые параметры: заголовки (X-Casino-Id, Signature) и тело запроса (bet). См. полный пример теста ниже (шаг 9).
-
-### 7. Сделать ассерты
-Используйте JUnit 5 assertAll и другие ассерты для проверки ответа: статус-кода, наличия тела ответа и корректности данных в теле ответа. См. полный пример теста ниже (шаг 9).
-
-### 8. Не переживать за аттачи ✨
-AllureFeignLoggerConfig берет на себя всю работу по логированию и аттачам для Allure-отчета. Вам не нужно писать дополнительный код для этого.
-
-![Пример аттачей Http Request/Response в Allure отчете](src/test/resources/%D0%A1%D0%BA%D1%80%D0%B8%D0%BD%D1%88%D0%BE%D1%82%2021-04-2025%20132058.jpg)
-
-
-### 9. Полный пример тестового класса (BetApiTest.java)
-Вот как может выглядеть полный тестовый класс, объединяющий все шаги:
-
-```java
-com.uplatform.example.test; 
-
-import com.yourcompany.clients.ManagerClient;
-import com.yourcompany.models.BetRequestBody;
-import com.yourcompany.models.GamblingResponseBody;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
-import java.math.BigDecimal;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-@SpringBootTest // Загружает контекст Spring Boot для теста
-class BetApiTest {
-
-    // --- Шаг 4: Инжектим наш Feign клиент   ---
-    @Autowired
-    private ManagerClient managerClient;                                         
-
-    @Test
-    void shouldSuccessfullyPlaceBetAndReturnBalance() {
-       step("Manager API: Совершение ставки", () -> {
-            // --- Шаг 5: Сформировать запрос ---
-            String transactionId = UUID.randomUUID().toString();
-            String roundId = UUID.randomUUID().toString();
-            String sessionToken = "95aa0509-21f3-4985-9950-92a2da95244d"; // Игровую сессию мы "выдумали" заранее, чтоб не отягощать пример
-            String casinoId = "demo-casino";
-    
-            BetRequestBody betRequest = BetRequestBody.builder()
-                    .sessionToken(sessionToken)
-                    .amount(new BigDecimal("10.15"))
-                    .transactionId(transactionId)
-                    .type("bet")
-                    .roundId(roundId)
-                    .roundClosed(false)
-                    .build();
-    
-    
-            // --- Шаг 6: Отправить запрос ---
-            ResponseEntity<GamblingResponseBody> response = managerClient.bet(
-                    casinoId,   // Значение для X-Casino-Id
-                    signature,  // Сгенерированная подпись
-                    betRequest  // Тело запроса
-            );
-        
-            // --- Шаг 7: Сделать ассерты ---
-            assertAll("Проверка ответа на запрос Bet",
-                    () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "Ожидался статус ответа OK (200)"),
-                    () -> assertEquals(transactionId, responseBody.getTransactionId(), "TransactionId в ответе должен совпадать с отправленным"),
-                    () ->  assertNotNull(responseBody.getBalance(), "Поле balance не должно быть null")
-            );
-        });
-    }
-}
-```
-
----
-
 ## Работа с Kafka
 
 ### 1. Как устроена работа с Kafka
