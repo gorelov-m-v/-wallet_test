@@ -315,7 +315,7 @@ public final class StringGeneratorUtil {
     }
 
     private static String generateTelephoneNumber() {
-        String countryCode = "+371";
+        String countryCode = "+370";
         String firstDigit = "2";
         String numberPart = randomStringFromSet(DIGITS, 7);
         return countryCode + firstDigit + numberPart;
