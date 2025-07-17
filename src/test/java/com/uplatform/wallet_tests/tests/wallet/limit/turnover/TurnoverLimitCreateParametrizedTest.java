@@ -76,7 +76,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  * <ul>
  *   <li>{@code DAILY} - ежедневный.</li>
  *   <li>{@code WEEKLY} - еженедельный.</li>
- *   <li>{@code MONTHLY} - ежемесячный.
+ *   <li>{@code MONTHLY} - ежемесячный.</li>
  * </ul>
  */
 @ExtendWith(CustomSuiteExtension.class)
@@ -106,20 +106,20 @@ public class TurnoverLimitCreateParametrizedTest {
 
     static Stream<Arguments> periodProvider() {
         return Stream.of(
-                arguments(NatsLimitIntervalType.DAILY, true, "DAILY"),
-                arguments(NatsLimitIntervalType.WEEKLY, false, "WEEKLY"),
-                arguments(NatsLimitIntervalType.MONTHLY, false, "MONTHLY")
+                arguments(NatsLimitIntervalType.DAILY, true),
+                arguments(NatsLimitIntervalType.WEEKLY, true),
+                arguments(NatsLimitIntervalType.MONTHLY, true)
         );
     }
 
     /**
-     * @param periodType Тип периода для устанавливаемого лимита.
+     * @param periodType      Тип периода для устанавливаемого лимита.
      * @param isLimitRequired Флаг, указывающий, является ли лимит обязательным (проверяется в FAPI).
      */
     @ParameterizedTest(name = "период = {0}, обязательный = {1}")
     @MethodSource("periodProvider")
     @DisplayName("Создание, проверка и получение TurnoverLimit:")
-    void testCreateAndVerifyTurnoverLimit(NatsLimitIntervalType periodType, boolean isLimitRequired, String periodName) {
+    void testCreateAndVerifyTurnoverLimit(NatsLimitIntervalType periodType, boolean isLimitRequired) {
         final String platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
 
         final class TestData {

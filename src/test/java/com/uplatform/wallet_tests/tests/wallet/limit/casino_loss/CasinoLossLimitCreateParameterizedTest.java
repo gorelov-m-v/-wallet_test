@@ -44,6 +44,41 @@ import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+/**
+ * Интеграционный тест, проверяющий процесс создания лимита на проигрыш в казино
+ * (CasinoLossLimit) с различными периодами действия (ежедневный, еженедельный,
+ * ежемесячный) и его корректное отражение в различных системах.
+ *
+ * <p>Каждая итерация параметризованного теста выполняется с полностью изолированным
+ * состоянием, включая создание нового игрока.</p>
+ *
+ * <p><b>Проверяемые уровни приложения:</b></p>
+ * <ul>
+ *   <li>Public API:
+ *     <ul>
+ *       <li>Установка лимита на проигрыш через FAPI ({@code /profile/limit/casino-loss}).</li>
+ *       <li>Получение списка лимитов игрока через FAPI ({@code /profile/limit/casino-loss}).</li>
+ *     </ul>
+ *   </li>
+ *   <li>Control Admin Panel (CAP) API: Получение лимитов игрока.</li>
+ *   <li>Система обмена сообщениями:
+ *     <ul>
+ *       <li>Передача события {@code limits.v2} через Kafka при установке лимита.</li>
+ *       <li>Передача события {@code limit_changed_v2} через NATS при установке лимита.</li>
+ *       <li>Проверка консистентности данных между Kafka (проекция кошелька) и NATS.</li>
+ *     </ul>
+ *   </li>
+ *   <li>Кэш: Проверка данных созданного лимита в агрегате кошелька в Redis (ключ {@code wallet:<wallet_uuid>}).</li>
+ * </ul>
+ *
+ * <p><b>Проверяемые типы периодов лимита ({@link com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitIntervalType}):</b></p>
+ * <ul>
+ *   <li>{@code DAILY} - ежедневный.</li>
+ *   <li>{@code WEEKLY} - еженедельный.</li>
+ *   <li>{@code MONTHLY} - ежемесячный.</li>
+ * </ul>
+ */
+
 @ExtendWith(CustomSuiteExtension.class)
 @SpringBootTest
 @ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
@@ -76,6 +111,9 @@ public class CasinoLossLimitCreateParameterizedTest {
         );
     }
 
+    /**
+     * @param periodType Тип периода для устанавливаемого лимита.
+     */
     @ParameterizedTest(name = "период = {0}")
     @MethodSource("periodProvider")
     @DisplayName("Создание, проверка и получение CasinoLossLimit:")
@@ -270,7 +308,7 @@ public class CasinoLossLimitCreateParameterizedTest {
                     () -> assertNotNull(fapiLimit.getStartedAt(), "fapi.get_casino_loss_limits.limit.startedAt"),
                     () -> assertNotNull(fapiLimit.getExpiresAt(), "fapi.get_casino_loss_limits.limit.expiresAt"),
                     () -> assertNull(fapiLimit.getDeactivatedAt(), "fapi.get_casino_loss_limits.limit.deactivatedAt_is_null_for_active_limit"),
-                    () -> assertFalse(fapiLimit.isRequired(), "fapi.get_casino_loss_limits.limit.isRequired_flag_is_false"),
+                    () -> assertTrue(fapiLimit.isRequired(), "fapi.get_casino_loss_limits.limit.isRequired_flag_is_true"),
                     () -> {
                         assertNotNull(fapiLimit.getUpcomingChanges(), "fapi.get_casino_loss_limits.limit.upcomingChanges_list_not_null");
                         assertTrue(fapiLimit.getUpcomingChanges().isEmpty(), "fapi.get_casino_loss_limits.limit.upcomingChanges_is_empty_for_new");
