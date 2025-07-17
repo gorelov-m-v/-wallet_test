@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -44,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(CustomSuiteExtension.class)
 @SpringBootTest
 @ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("CAP")
 @Feature("BlockAmount")

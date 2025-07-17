@@ -30,7 +30,6 @@ import org.springframework.test.context.ContextConfiguration;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import static com.uplatform.wallet_tests.api.http.manager.dto.gambling.enums.GamblingErrors.ROLLBACK_ALREADY_HANDLED;
 import static com.uplatform.wallet_tests.tests.util.utils.StringGeneratorUtil.generateBigDecimalAmount;
 import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.*;
@@ -59,7 +58,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *   <li>Ставка и рефанд выполняются успешно (HTTP 200 OK).</li>
  *   <li>Попытка роллбэка ставки, по которой был выполнен рефанд,
  *       должна быть отклонена с кодом {@code HTTP 400 BAD REQUEST}
- *       и содержать ошибку {@link GamblingErrors#ROLLBACK_ALREADY_HANDLED} (или аналогичную,
+ *       и содержать ошибку {@link GamblingErrors#ROLLBACK_NOT_ALLOWED} (или аналогичную,
  *       указывающую на то, что транзакция не может быть отменена, так как уже была возвращена/обработана).</li>
  * </ul>
  */
@@ -172,8 +171,8 @@ class RollbackAfterRefundTest {
             assertAll("Проверка деталей ошибки при попытке роллбэка после рефанда",
                     () -> assertEquals(HttpStatus.BAD_REQUEST.value(), thrownException.status(), "manager_api.rollback_after_refund.status_code"),
                     () -> assertNotNull(error, "manager_api.rollback_after_refund.body"),
-                    () -> assertEquals(ROLLBACK_ALREADY_HANDLED.getCode(), error.getCode(), "manager_api.rollback_after_refund.error_code"),
-                    () -> assertEquals(ROLLBACK_ALREADY_HANDLED.getMessage(), error.getMessage(), "manager_api.rollback_after_refund.error_message")
+                    () -> assertEquals(GamblingErrors.ROLLBACK_NOT_ALLOWED.getCode(), error.getCode(), "manager_api.rollback_after_refund.error_code"),
+                    () -> assertEquals(GamblingErrors.ROLLBACK_NOT_ALLOWED.getMessage(), error.getMessage(), "manager_api.rollback_after_refund.error_message")
             );
         });
     }

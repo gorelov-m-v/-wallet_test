@@ -97,11 +97,12 @@ public class SingleBetLimitCreateTest {
         });
 
         step("Kafka: Получение сообщения из топика limits.v2", () -> {
+            var expectedAmount = testData.limitAmount.stripTrailingZeros().toPlainString();
             testData.kafkaLimitMessage = limitKafkaClient.expectLimitMessage(
                     testData.registeredPlayer.getWalletData().getPlayerUUID(),
                     NatsLimitType.SINGLE_BET.getValue(),
                     testData.registeredPlayer.getWalletData().getCurrency(),
-                    testData.limitAmount.toString()
+                    expectedAmount
             );
             assertNotNull(testData.kafkaLimitMessage, "kafka.limits_v2_event.message_not_null");
         });

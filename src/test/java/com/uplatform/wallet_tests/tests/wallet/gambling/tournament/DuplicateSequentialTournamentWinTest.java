@@ -3,10 +3,8 @@ package com.uplatform.wallet_tests.tests.wallet.gambling.tournament;
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
 import com.uplatform.wallet_tests.api.http.manager.client.ManagerClient;
-import com.uplatform.wallet_tests.api.http.manager.dto.gambling.GamblingError;
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.TournamentRequestBody;
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.enums.ApiEndpoints;
-import com.uplatform.wallet_tests.api.http.manager.dto.gambling.enums.GamblingErrors;
 import com.uplatform.wallet_tests.api.nats.NatsClient;
 import com.uplatform.wallet_tests.api.nats.dto.NatsGamblingEventPayload;
 import com.uplatform.wallet_tests.api.nats.dto.NatsMessage;
@@ -17,7 +15,6 @@ import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
 import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
-import feign.FeignException;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -43,8 +40,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * <p><b>Цель теста:</b></p>
  * <p>Убедиться, что API Manager корректно обрабатывает попытку дублирования турнирного выигрыша,
  * когда второй запрос полностью идентичен первому (включая {@code transactionId}).
- * Тест ожидает, что система вернет ошибку валидации (например, {@link GamblingErrors#VALIDATION_ERROR})
- * при второй попытке.</p>
+ * Тест ожидает, что система вернет ответ {@link HttpStatus#OK} с тем же
+ * {@code transactionId} и балансом, равным нулю, подтверждая идемпотентную
+ * обработку дубликата.</p>
  *
  * <p><b>Сценарий теста:</b></p>
  * <ol>
@@ -55,8 +53,9 @@ import static org.junit.jupiter.api.Assertions.*;
  *   <li><b>Ожидание NATS-события:</b> Ожидается NATS-событие {@code tournament_won_from_gamble} для подтверждения обработки первого выигрыша.</li>
  *   <li><b>Попытка дублирования турнирного выигрыша:</b> Через API отправляется второй запрос {@code /tournament}
  *       с абсолютно теми же параметрами, что и первый успешный выигрыш (включая {@code transactionId}).</li>
- *   <li><b>Проверка ответа API на дубликат:</b> Ожидается, что API вернет ошибку {@link FeignException}
- *       со статусом {@link HttpStatus#BAD_REQUEST} и кодом ошибки {@link GamblingErrors#VALIDATION_ERROR}.</li>
+ *   <li><b>Проверка ответа API на дубликат:</b> Ожидается, что API вернет успешный
+ *       ответ со статусом {@link HttpStatus#OK}, содержащий {@code transactionId}
+ *       из первого запроса и нулевой баланс.</li>
  * </ol>
  */
 @ExtendWith(CustomSuiteExtension.class)
@@ -139,24 +138,20 @@ class DuplicateSequentialTournamentWinTest {
             assertNotNull(testData.firstTournamentNatsEvent, "nats.tournament_won_from_gamble_event_for_first_win");
         });
 
-        step("Manager API: Попытка дублирования турнирного выигрыша (повторная отправка с ID: " + testData.firstTournamentRequest.getTransactionId() + ") и проверка ошибки", () -> {
-            var thrownException = assertThrows(
-                    FeignException.class,
-                    () -> managerClient.tournament(
-                            casinoId,
-                            utils.createSignature(ApiEndpoints.TOURNAMENT, testData.firstTournamentRequest),
-                            testData.firstTournamentRequest
-                    ),
-                    "manager_api.tournament.feign_exception_expected_on_duplicate"
+        step("Manager API: Попытка дублирования турнирного выигрыша (повторная отправка с ID: " + testData.firstTournamentRequest.getTransactionId() + ") и проверка идемпотентного ответа", () -> {
+            var duplicateResponse = managerClient.tournament(
+                    casinoId,
+                    utils.createSignature(ApiEndpoints.TOURNAMENT, testData.firstTournamentRequest),
+                    testData.firstTournamentRequest
             );
 
-            var error = utils.parseFeignExceptionContent(thrownException, GamblingError.class);
+            var responseBody = duplicateResponse.getBody();
 
-            assertAll("Проверка деталей ошибки дублирования турнирного выигрыша",
-                    () -> assertEquals(HttpStatus.BAD_REQUEST.value(), thrownException.status(), "manager_api.error.status_code_on_duplicate"),
-                    () -> assertNotNull(error, "manager_api.error.parsed_object_on_duplicate"),
-                    () -> assertEquals(GamblingErrors.VALIDATION_ERROR.getCode(), error.getCode(), "manager_api.error.code_on_duplicate"),
-                    () -> assertNotNull(error.getMessage(), "manager_api.error.message_on_duplicate")
+            assertAll("Проверка идемпотентного ответа при дублировании турнирного выигрыша",
+                    () -> assertEquals(HttpStatus.OK, duplicateResponse.getStatusCode(), "manager_api.tournament.status_code_on_duplicate"),
+                    () -> assertNotNull(responseBody, "manager_api.tournament.body_on_duplicate"),
+                    () -> assertEquals(testData.firstTournamentRequest.getTransactionId(), responseBody.getTransactionId(), "manager_api.tournament.transaction_id_on_duplicate"),
+                    () -> assertEquals(0, BigDecimal.ZERO.compareTo(responseBody.getBalance()), "manager_api.tournament.balance_on_duplicate")
             );
         });
     }
