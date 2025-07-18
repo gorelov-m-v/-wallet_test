@@ -6,10 +6,15 @@ import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import com.uplatform.wallet_tests.api.http.manager.client.ManagerClient;
+import com.uplatform.wallet_tests.api.http.cap.client.CapAdminClient;
+import com.uplatform.wallet_tests.api.http.fapi.client.FapiClient;
 import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.api.nats.NatsClient;
 import com.uplatform.wallet_tests.api.kafka.client.WalletProjectionKafkaClient;
+import com.uplatform.wallet_tests.api.kafka.client.GameSessionKafkaClient;
+import com.uplatform.wallet_tests.api.kafka.client.LimitKafkaClient;
 import com.uplatform.wallet_tests.api.db.WalletDatabaseClient;
+import com.uplatform.wallet_tests.api.db.CoreDatabaseClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
@@ -50,4 +55,19 @@ public abstract class BaseTest {
 
     @Autowired
     protected WalletDatabaseClient walletDatabaseClient;
+
+    @Autowired
+    protected CapAdminClient capAdminClient;
+
+    @Autowired
+    protected FapiClient publicClient;
+
+    @Autowired
+    protected LimitKafkaClient limitKafkaClient;
+
+    @Autowired
+    protected GameSessionKafkaClient gameSessionKafkaClient;
+
+    @Autowired
+    protected CoreDatabaseClient coreDatabaseClient;
 }

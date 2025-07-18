@@ -3,10 +3,7 @@ import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.http.cap.client.CapAdminClient;
-import com.uplatform.wallet_tests.api.http.fapi.client.FapiClient;
 import com.uplatform.wallet_tests.api.http.fapi.dto.single_bet.SetSingleBetLimitRequest;
-import com.uplatform.wallet_tests.api.kafka.client.LimitKafkaClient;
 import com.uplatform.wallet_tests.api.kafka.client.WalletProjectionKafkaClient;
 import com.uplatform.wallet_tests.api.kafka.dto.LimitMessage;
 import com.uplatform.wallet_tests.api.nats.NatsClient;
@@ -22,7 +19,6 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
@@ -37,9 +33,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Позитивные сценарии: SingleBetLimit")
 @Tag("Limits") @Tag("Wallet")
 public class SingleBetLimitCreateTest extends BaseTest {
-    @Autowired private FapiClient publicClient;
-    @Autowired private LimitKafkaClient limitKafkaClient;
-    @Autowired private CapAdminClient capAdminClient;
 
     @Test
     @DisplayName("Создание single-bet лимита")

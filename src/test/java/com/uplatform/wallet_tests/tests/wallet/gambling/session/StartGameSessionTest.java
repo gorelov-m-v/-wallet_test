@@ -3,25 +3,21 @@ import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.db.CoreDatabaseClient;
 import com.uplatform.wallet_tests.api.db.WalletDatabaseClient;
 import com.uplatform.wallet_tests.api.db.entity.core.CoreGame;
 import com.uplatform.wallet_tests.api.db.entity.core.CoreGameSession;
 import com.uplatform.wallet_tests.api.db.entity.core.GameProvider;
 import com.uplatform.wallet_tests.api.db.entity.core.GameSessionMode;
 import com.uplatform.wallet_tests.api.db.entity.wallet.WalletGameSession;
-import com.uplatform.wallet_tests.api.http.fapi.client.FapiClient;
 import com.uplatform.wallet_tests.api.http.fapi.dto.get_games.FapiGame;
 import com.uplatform.wallet_tests.api.http.fapi.dto.launch.LaunchGameRequestBody;
 import com.uplatform.wallet_tests.api.http.fapi.dto.launch.LaunchGameResponseBody;
-import com.uplatform.wallet_tests.api.kafka.client.GameSessionKafkaClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -36,9 +32,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Позитивные сценарии: StartGameSession")
 @Tag("Gambling") @Tag("Wallet") @Tag("Platform")
 class StartGameSessionTest extends BaseTest {
-    @Autowired private FapiClient publicClient;
-    @Autowired private CoreDatabaseClient coreDatabaseClient;
-    @Autowired private GameSessionKafkaClient gameSessionKafkaClient;
 
     private static final Random RANDOM = new Random();
 

@@ -4,7 +4,6 @@ import com.uplatform.wallet_tests.tests.base.BaseParameterizedTest;
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
 import com.uplatform.wallet_tests.api.db.WalletDatabaseClient;
-import com.uplatform.wallet_tests.api.http.cap.client.CapAdminClient;
 import com.uplatform.wallet_tests.api.http.cap.dto.update_blockers.UpdateBlockersRequest;
 import com.uplatform.wallet_tests.api.kafka.client.WalletProjectionKafkaClient;
 import com.uplatform.wallet_tests.api.nats.NatsClient;
@@ -21,7 +20,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
 import java.util.function.BiPredicate;
@@ -36,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Позитивные сценарии: PlayerBlockers")
 @Tag("Wallet") @Tag("СAP")
 class BlockersParametrizedTest extends BaseParameterizedTest {
-    @Autowired private CapAdminClient capAdminClient;
 
     private String platformNodeId;
 

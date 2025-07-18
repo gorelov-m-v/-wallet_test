@@ -3,10 +3,7 @@ import com.uplatform.wallet_tests.tests.base.BaseParameterizedTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.http.cap.client.CapAdminClient;
-import com.uplatform.wallet_tests.api.http.fapi.client.FapiClient;
 import com.uplatform.wallet_tests.api.http.fapi.dto.casino_loss.SetCasinoLossLimitRequest;
-import com.uplatform.wallet_tests.api.kafka.client.LimitKafkaClient;
 import com.uplatform.wallet_tests.api.kafka.client.WalletProjectionKafkaClient;
 import com.uplatform.wallet_tests.api.kafka.dto.LimitMessage;
 import com.uplatform.wallet_tests.api.nats.NatsClient;
@@ -25,7 +22,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
@@ -77,9 +73,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Suite("Позитивные сценарии: CasinoLossLimit")
 @Tag("Limits") @Tag("Wallet") @Tag("CasinoLossLimit")
 public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTest {
-    @Autowired private FapiClient publicClient;
-    @Autowired private LimitKafkaClient limitKafkaClient;
-    @Autowired private CapAdminClient capAdminClient;
 
     private static final BigDecimal limitAmount = new BigDecimal("100.15");
 

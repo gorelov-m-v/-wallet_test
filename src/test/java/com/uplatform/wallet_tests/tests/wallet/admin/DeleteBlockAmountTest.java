@@ -3,7 +3,6 @@ import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.http.cap.client.CapAdminClient;
 import com.uplatform.wallet_tests.api.http.cap.dto.create_balance_adjustment.CreateBalanceAdjustmentRequest;
 import com.uplatform.wallet_tests.api.http.cap.dto.create_balance_adjustment.enums.DirectionType;
 import com.uplatform.wallet_tests.api.http.cap.dto.create_balance_adjustment.enums.OperationType;
@@ -24,7 +23,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -42,7 +40,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Позитивные сценарии: DeleteBlockAmount")
 @Tag("Wallet") @Tag("CAP")
 class DeleteBlockAmountTest extends BaseTest {
-    @Autowired private CapAdminClient capAdminClient;
 
     private String platformNodeId;
 

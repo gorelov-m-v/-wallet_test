@@ -3,7 +3,6 @@ import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.http.cap.client.CapAdminClient;
 import com.uplatform.wallet_tests.api.http.cap.dto.create_block_amount.CreateBlockAmountRequest;
 import com.uplatform.wallet_tests.api.http.cap.dto.create_block_amount.CreateBlockAmountResponse;
 import com.uplatform.wallet_tests.api.kafka.client.WalletProjectionKafkaClient;
@@ -20,7 +19,6 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -38,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Позитивные сценарии: BlockAmount")
 @Tag("Wallet") @Tag("CAP")
 class BlockAmountTest extends BaseTest {
-    @Autowired private CapAdminClient capAdminClient;
 
     @Test
     @DisplayName("Проверка создания блокировки средств на кошельке игрока")
