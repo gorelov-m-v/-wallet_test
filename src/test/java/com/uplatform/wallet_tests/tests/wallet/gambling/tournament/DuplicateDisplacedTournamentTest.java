@@ -1,32 +1,20 @@
 package com.uplatform.wallet_tests.tests.wallet.gambling.tournament;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
-import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.http.manager.client.ManagerClient;
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.TournamentRequestBody;
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.enums.ApiEndpoints;
-import com.uplatform.wallet_tests.api.nats.NatsClient;
 import com.uplatform.wallet_tests.api.nats.dto.NatsGamblingEventPayload;
 import com.uplatform.wallet_tests.api.nats.dto.NatsMessage;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsEventType;
-import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.api.redis.model.WalletFullData;
-import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -67,24 +55,13 @@ import static org.junit.jupiter.api.Assertions.*;
  *       содержащий {@code transactionId} дублируемого запроса и нулевой баланс.</li>
  * </ol>
  */
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("Gambling")
 @Feature("/tournament")
 @Suite("Негативные сценарии: /tournament")
 @Tag("Gambling") @Tag("Wallet")
-@TmsLink("")
-class DuplicateDisplacedTournamentTest {
+class DuplicateDisplacedTournamentTest extends BaseTest {
 
-    @Autowired private ManagerClient managerClient;
-    @Autowired private DefaultTestSteps defaultTestSteps;
-    @Autowired private TestUtils utils;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("1000.00");
     private static final BigDecimal singleTournamentAmount = new BigDecimal("10.00");

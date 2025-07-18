@@ -1,39 +1,24 @@
 package com.uplatform.wallet_tests.tests.wallet.admin;
+import com.uplatform.wallet_tests.tests.base.BaseParameterizedTest;
 
-import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.http.cap.client.CapAdminClient;
 import com.uplatform.wallet_tests.api.http.cap.dto.create_balance_adjustment.CreateBalanceAdjustmentRequest;
 import com.uplatform.wallet_tests.api.http.cap.dto.create_balance_adjustment.enums.DirectionType;
 import com.uplatform.wallet_tests.api.http.cap.dto.create_balance_adjustment.enums.OperationType;
 import com.uplatform.wallet_tests.api.http.cap.dto.create_balance_adjustment.enums.ReasonType;
-import com.uplatform.wallet_tests.api.kafka.client.WalletProjectionKafkaClient;
 import com.uplatform.wallet_tests.api.kafka.dto.WalletProjectionMessage;
-import com.uplatform.wallet_tests.api.nats.NatsClient;
 import com.uplatform.wallet_tests.api.nats.dto.NatsBalanceAdjustedPayload;
 import com.uplatform.wallet_tests.api.nats.dto.NatsMessage;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsEventType;
-import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
-import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.function.BiPredicate;
@@ -46,25 +31,12 @@ import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Execution(ExecutionMode.CONCURRENT)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("CAP")
 @Feature("BalanceAdjustment")
 @Suite("Позитивные сценарии: BalanceAdjustment")
 @Tag("Wallet") @Tag("CAP")
-@TmsLink("NW-30")
-class BalanceAdjustmentParametrizedTest {
-    @Autowired private CapAdminClient capAdminClient;
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private TestUtils utils;
-    @Autowired private DefaultTestSteps defaultTestSteps;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
+class BalanceAdjustmentParametrizedTest extends BaseParameterizedTest {
 
     private final BigDecimal initialBalance = new BigDecimal("150.00");
     private final BigDecimal adjustmentAmount = new BigDecimal("100.00");
@@ -103,7 +75,7 @@ class BalanceAdjustmentParametrizedTest {
             ReasonType reasonType,
             String description
     ) {
-        final class TestData {
+        final class TestData extends BaseParameterizedTest {
             RegisteredPlayerData registeredPlayer;
             CreateBalanceAdjustmentRequest adjustmentRequest;
             NatsMessage<NatsBalanceAdjustedPayload> balanceAdjustedEvent;

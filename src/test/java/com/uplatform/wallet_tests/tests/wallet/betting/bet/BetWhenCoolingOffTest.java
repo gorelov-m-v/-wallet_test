@@ -1,26 +1,19 @@
 package com.uplatform.wallet_tests.tests.wallet.betting.bet;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
-import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.http.fapi.client.FapiClient;
 import com.uplatform.wallet_tests.api.http.fapi.dto.enums.RestrictionExpireType;
 import com.uplatform.wallet_tests.api.http.fapi.dto.player_restrictions.PlayerRestrictionsRequest;
 import com.uplatform.wallet_tests.api.http.manager.client.ManagerClient;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsBettingCouponType;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsBettingTransactionOperation;
-import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.utils.MakePaymentData;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 
@@ -29,15 +22,11 @@ import static com.uplatform.wallet_tests.tests.util.utils.MakePaymentRequestGene
 import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("Betting")
 @Feature("MakePayment")
 @Suite("Негативные сценарии: MakePayment")
 @Tag("")
-@TmsLink("")
 /**
  * Проверяет отказ в ставке при установленном режиме CoolingOff у игрока.
  *
@@ -61,10 +50,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
-class BetWhenCoolingOffTest {
-    @Autowired private ManagerClient managerClient;
-    @Autowired private FapiClient publicClient;
-    @Autowired private DefaultTestSteps defaultTestSteps;
+class BetWhenCoolingOffTest extends BaseTest {
 
     @Test
     @DisplayName("Совершение ставки в iframe, игроком с самоограничением")
