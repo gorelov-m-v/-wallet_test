@@ -1,8 +1,7 @@
 package com.uplatform.wallet_tests.tests.wallet.gambling.rollback;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
-import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.http.manager.client.ManagerClient;
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.BetRequestBody;
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.GamblingError;
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.RefundRequestBody;
@@ -10,22 +9,14 @@ import com.uplatform.wallet_tests.api.http.manager.dto.gambling.RollbackRequestB
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.enums.ApiEndpoints;
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.enums.GamblingErrors;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsGamblingTransactionOperation;
-import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import feign.FeignException;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -62,20 +53,12 @@ import static org.junit.jupiter.api.Assertions.*;
  *       указывающую на то, что транзакция не может быть отменена, так как уже была возвращена/обработана).</li>
  * </ul>
  */
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("Gambling")
 @Feature("/rollback")
 @Suite("Негативные сценарии: /rollback")
 @Tag("Gambling") @Tag("Wallet")
-@TmsLink("")
-class RollbackAfterRefundTest {
-    @Autowired private ManagerClient managerClient;
-    @Autowired private TestUtils utils;
-    @Autowired private DefaultTestSteps defaultTestSteps;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
+class RollbackAfterRefundTest extends BaseTest {
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
     private static final BigDecimal betAmount = generateBigDecimalAmount(initialAdjustmentAmount);

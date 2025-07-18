@@ -1,39 +1,25 @@
 package com.uplatform.wallet_tests.tests.wallet.betting.bet;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.db.WalletDatabaseClient;
 import com.uplatform.wallet_tests.api.db.entity.wallet.enums.CouponCalcStatus;
 import com.uplatform.wallet_tests.api.db.entity.wallet.enums.CouponStatus;
 import com.uplatform.wallet_tests.api.db.entity.wallet.enums.CouponType;
-import com.uplatform.wallet_tests.api.http.manager.client.ManagerClient;
 import com.uplatform.wallet_tests.api.http.manager.dto.betting.MakePaymentRequest;
-import com.uplatform.wallet_tests.api.kafka.client.WalletProjectionKafkaClient;
-import com.uplatform.wallet_tests.api.nats.NatsClient;
 import com.uplatform.wallet_tests.api.nats.dto.NatsBettingEventPayload;
 import com.uplatform.wallet_tests.api.nats.dto.NatsMessage;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsBettingCouponType;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsBettingTransactionOperation;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsEventType;
-import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.api.redis.model.enums.IFrameRecordType;
-import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import com.uplatform.wallet_tests.tests.util.utils.MakePaymentData;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -45,15 +31,11 @@ import static com.uplatform.wallet_tests.tests.util.utils.MakePaymentRequestGene
 import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("Betting")
 @Feature("MakePayment")
 @Suite("Позитивные сценарии: MakePayment")
 @Tag("Betting") @Tag("Wallet")
-@TmsLink("")
 /**
  * Проверяет обработку ставки, совершённой из iframe, и фиксацию всех сопутствующих событий.
  *
@@ -83,16 +65,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
-class BetFromIframeTest {
-    @Autowired private ManagerClient managerClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
-    @Autowired private WalletDatabaseClient walletDatabaseClient;
-    @Autowired private TestUtils utils;
-    @Autowired private DefaultTestSteps defaultTestSteps;
-    @Autowired private ObjectMapper objectMapper;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
+class BetFromIframeTest extends BaseTest {
 
     @Test
     @DisplayName("Проверка обработки ставки iframe")
