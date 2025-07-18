@@ -12,7 +12,6 @@ import com.uplatform.wallet_tests.api.http.manager.dto.gambling.enums.GamblingEr
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import feign.FeignException;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
@@ -61,7 +60,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Gambling") @Tag("Wallet")
 class RollbackAfterTournamentTest extends BaseTest {
     @Autowired private ManagerClient managerClient;
-    @Autowired private TestUtils utils;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
     private static final BigDecimal tournamentAmount = generateBigDecimalAmount(initialAdjustmentAmount);

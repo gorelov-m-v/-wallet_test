@@ -17,7 +17,6 @@ import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -44,7 +43,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class TurnoverLimitWhenWinParameterizedTest extends BaseParameterizedTest {
     @Autowired private FapiClient publicClient;
     @Autowired private ManagerClient managerClient;
-    @Autowired private TestUtils utils;
     @Autowired private NatsClient natsClient;
     @Autowired private WalletRedisClient redisClient;
 

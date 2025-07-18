@@ -17,7 +17,6 @@ import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -110,7 +109,6 @@ class RefundParametrizedTest extends BaseParameterizedTest {
     @Autowired private ManagerClient managerClient;
     @Autowired private WalletDatabaseClient walletDatabaseClient;
     @Autowired private NatsClient natsClient;
-    @Autowired private TestUtils utils;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
     private static final String expectedCurrencyRates = "1";

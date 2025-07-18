@@ -11,7 +11,6 @@ import com.uplatform.wallet_tests.api.http.manager.dto.gambling.enums.ApiEndpoin
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -33,7 +32,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class TournamentWhenBettingBlockedTest extends BaseTest {
     @Autowired private CapAdminClient capAdminClient;
     @Autowired private ManagerClient managerClient;
-    @Autowired private TestUtils utils;
 
     @Test
     @DisplayName("Получение выигрыша в турнире игроком с заблокированным гемблингом")

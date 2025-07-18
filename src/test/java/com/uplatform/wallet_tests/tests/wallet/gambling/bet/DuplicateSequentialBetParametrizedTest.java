@@ -14,7 +14,6 @@ import com.uplatform.wallet_tests.api.nats.dto.enums.NatsGamblingTransactionOper
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -65,7 +64,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Gambling") @Tag("Wallet")
 class DuplicateSequentialBetParametrizedTest extends BaseParameterizedTest {
     @Autowired private ManagerClient managerClient;
-    @Autowired private TestUtils utils;
     @Autowired private NatsClient natsClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("100.00");

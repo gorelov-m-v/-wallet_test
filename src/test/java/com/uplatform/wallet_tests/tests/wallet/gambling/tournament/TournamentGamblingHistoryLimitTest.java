@@ -15,7 +15,6 @@ import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -78,7 +77,6 @@ class TournamentGamblingHistoryLimitTest extends BaseTest {
     @Autowired private WalletRedisClient redisClient;
     @Autowired private NatsClient natsClient;
     @Autowired private ManagerClient managerClient;
-    @Autowired private TestUtils utils;
 
     private static final BigDecimal operationAmount = new BigDecimal("5.00");
     private static final BigDecimal initialBalance = BigDecimal.ZERO;

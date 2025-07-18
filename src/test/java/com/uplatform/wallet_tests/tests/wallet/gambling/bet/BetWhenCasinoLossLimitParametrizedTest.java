@@ -18,7 +18,6 @@ import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitIntervalType;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import feign.FeignException;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.BeforeAll;
@@ -72,7 +71,6 @@ class BetWhenCasinoLossLimitParametrizedTest extends BaseParameterizedTest {
     @Autowired private FapiClient publicClient;
     @Autowired private ManagerClient managerClient;
     @Autowired private NatsClient natsClient;
-    @Autowired private TestUtils utils;
 
     private RegisteredPlayerData registeredPlayer;
     private GameLaunchData gameLaunchData;

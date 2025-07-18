@@ -11,7 +11,6 @@ import com.uplatform.wallet_tests.api.nats.dto.enums.NatsBettingCouponType;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsBettingTransactionOperation;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import com.uplatform.wallet_tests.tests.util.utils.MakePaymentData;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
@@ -55,7 +54,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class LossWhenBettingBlockedTest extends BaseTest {
     @Autowired private CapAdminClient capAdminClient;
     @Autowired private ManagerClient managerClient;
-    @Autowired private TestUtils utils;
 
     @Test
     @DisplayName("Получение проигрыша в iframe, игроком с заблокированным беттингом")

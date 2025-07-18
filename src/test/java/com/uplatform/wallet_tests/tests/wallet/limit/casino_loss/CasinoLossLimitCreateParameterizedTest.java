@@ -19,7 +19,6 @@ import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitType;
 import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -84,7 +83,6 @@ public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTes
     @Autowired private NatsClient natsClient;
     @Autowired private WalletRedisClient redisClient;
     @Autowired private CapAdminClient capAdminClient;
-    @Autowired private TestUtils utils;
 
     private static final BigDecimal limitAmount = new BigDecimal("100.15");
 

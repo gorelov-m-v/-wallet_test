@@ -17,7 +17,6 @@ import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
@@ -87,7 +86,6 @@ class WinParametrizedTest extends BaseParameterizedTest {
     @Autowired private WalletDatabaseClient walletDatabaseClient;
     @Autowired private NatsClient natsClient;
     @Autowired private ManagerClient managerClient;
-    @Autowired private TestUtils utils;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
     private static final String expectedCurrencyRates = "1";

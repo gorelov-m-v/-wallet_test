@@ -22,7 +22,6 @@ import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.api.redis.model.enums.IFrameRecordType;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import com.uplatform.wallet_tests.tests.util.utils.MakePaymentData;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
@@ -79,7 +78,6 @@ class RecalculatingLossWinTest extends BaseTest {
     @Autowired private NatsClient natsClient;
     @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
     @Autowired private WalletDatabaseClient walletDatabaseClient;
-    @Autowired private TestUtils utils;
     @Autowired private ObjectMapper objectMapper;
 
     @Test
