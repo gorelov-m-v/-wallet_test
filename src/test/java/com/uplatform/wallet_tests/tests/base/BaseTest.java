@@ -5,6 +5,7 @@ import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
@@ -26,4 +27,7 @@ public abstract class BaseTest {
 
     @Autowired
     protected TestUtils utils;
+
+    @Autowired
+    protected ObjectMapper objectMapper;
 }

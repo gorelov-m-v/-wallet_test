@@ -2,7 +2,6 @@ package com.uplatform.wallet_tests.tests.wallet.betting.bet;
 import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
 import com.uplatform.wallet_tests.api.db.WalletDatabaseClient;
@@ -80,7 +79,6 @@ class BetFromIframeTest extends BaseTest {
     @Autowired private NatsClient natsClient;
     @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
     @Autowired private WalletDatabaseClient walletDatabaseClient;
-    @Autowired private ObjectMapper objectMapper;
 
     @Test
     @DisplayName("Проверка обработки ставки iframe")
