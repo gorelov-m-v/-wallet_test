@@ -3,6 +3,7 @@ package com.uplatform.wallet_tests.tests.base;
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
+import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
@@ -18,4 +19,7 @@ public abstract class BaseTest {
 
     @Autowired
     protected EnvironmentConfigurationProvider configProvider;
+
+    @Autowired
+    protected DefaultTestSteps defaultTestSteps;
 }

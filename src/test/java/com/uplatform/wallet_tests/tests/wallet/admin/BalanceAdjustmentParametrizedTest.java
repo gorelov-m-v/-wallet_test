@@ -16,9 +16,7 @@ import com.uplatform.wallet_tests.api.nats.dto.NatsMessage;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsEventType;
 import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.BeforeAll;
@@ -52,8 +50,6 @@ class BalanceAdjustmentParametrizedTest extends BaseParameterizedTest {
     @Autowired private WalletRedisClient redisClient;
     @Autowired private NatsClient natsClient;
     @Autowired private TestUtils utils;
-    @Autowired private DefaultTestSteps defaultTestSteps;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     private final BigDecimal initialBalance = new BigDecimal("150.00");
     private final BigDecimal adjustmentAmount = new BigDecimal("100.00");

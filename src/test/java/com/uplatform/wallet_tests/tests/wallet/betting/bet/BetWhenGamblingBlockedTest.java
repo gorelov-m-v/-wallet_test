@@ -9,9 +9,7 @@ import com.uplatform.wallet_tests.api.http.manager.client.ManagerClient;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsBettingCouponType;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsBettingTransactionOperation;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import com.uplatform.wallet_tests.tests.util.utils.MakePaymentData;
 import io.qameta.allure.*;
@@ -56,10 +54,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class BetWhenGamblingBlockedTest extends BaseTest {
     @Autowired private ManagerClient managerClient;
-    @Autowired private DefaultTestSteps defaultTestSteps;
     @Autowired private CapAdminClient capAdminClient;
     @Autowired private TestUtils utils;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     @Test
     @DisplayName("Совершение ставки в iframe, игроком с заблокированным гемблингом")

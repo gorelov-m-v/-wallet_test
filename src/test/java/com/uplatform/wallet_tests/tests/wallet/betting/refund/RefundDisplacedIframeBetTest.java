@@ -14,9 +14,7 @@ import com.uplatform.wallet_tests.api.nats.dto.enums.NatsEventType;
 import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.api.redis.model.WalletFullData;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.utils.MakePaymentData;
 import com.uplatform.wallet_tests.tests.util.utils.MakePaymentRequestGenerator;
 import io.qameta.allure.*;
@@ -68,8 +66,6 @@ class RefundDisplacedIframeBetTest extends BaseTest {
     @Autowired private WalletRedisClient redisClient;
     @Autowired private NatsClient natsClient;
     @Autowired private ManagerClient managerClient;
-    @Autowired private DefaultTestSteps defaultTestSteps;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     private static final BigDecimal singleBetAmount = new BigDecimal("1.00");
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("550.00");

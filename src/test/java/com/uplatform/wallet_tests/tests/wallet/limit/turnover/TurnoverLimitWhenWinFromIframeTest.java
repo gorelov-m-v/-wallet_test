@@ -14,9 +14,7 @@ import com.uplatform.wallet_tests.api.nats.dto.NatsMessage;
 import com.uplatform.wallet_tests.api.nats.dto.enums.*;
 import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.utils.MakePaymentData;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
@@ -41,10 +39,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class TurnoverLimitWhenWinFromIframeTest extends BaseTest {
     @Autowired private FapiClient publicClient;
     @Autowired private ManagerClient managerClient;
-    @Autowired private DefaultTestSteps defaultTestSteps;
     @Autowired private NatsClient natsClient;
     @Autowired private WalletRedisClient redisClient;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
     private static final BigDecimal limitAmountBase = generateBigDecimalAmount(initialAdjustmentAmount);

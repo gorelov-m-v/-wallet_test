@@ -19,10 +19,8 @@ import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitIntervalType;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitType;
 import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
@@ -75,10 +73,8 @@ class TurnoverLimitWhenRollbackTest extends BaseTest {
     @Autowired private FapiClient publicClient;
     @Autowired private ManagerClient managerClient;
     @Autowired private TestUtils utils;
-    @Autowired private DefaultTestSteps defaultTestSteps;
     @Autowired private NatsClient natsClient;
     @Autowired private WalletRedisClient redisClient;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("2000.00");
     private static final BigDecimal limitAmountBase = generateBigDecimalAmount(initialAdjustmentAmount);

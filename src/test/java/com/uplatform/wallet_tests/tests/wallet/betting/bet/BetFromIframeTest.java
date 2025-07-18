@@ -21,9 +21,7 @@ import com.uplatform.wallet_tests.api.nats.dto.enums.NatsEventType;
 import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.api.redis.model.enums.IFrameRecordType;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import com.uplatform.wallet_tests.tests.util.utils.MakePaymentData;
 import io.qameta.allure.*;
@@ -84,9 +82,7 @@ class BetFromIframeTest extends BaseTest {
     @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
     @Autowired private WalletDatabaseClient walletDatabaseClient;
     @Autowired private TestUtils utils;
-    @Autowired private DefaultTestSteps defaultTestSteps;
     @Autowired private ObjectMapper objectMapper;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     @Test
     @DisplayName("Проверка обработки ставки iframe")

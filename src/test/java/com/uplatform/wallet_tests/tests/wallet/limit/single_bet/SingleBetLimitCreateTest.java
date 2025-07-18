@@ -17,9 +17,7 @@ import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitEventType;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitType;
 import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
@@ -40,7 +38,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Позитивные сценарии: SingleBetLimit")
 @Tag("Limits") @Tag("Wallet")
 public class SingleBetLimitCreateTest extends BaseTest {
-    @Autowired private DefaultTestSteps defaultTestSteps;
     @Autowired private FapiClient publicClient;
     @Autowired private LimitKafkaClient limitKafkaClient;
     @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
@@ -48,7 +45,6 @@ public class SingleBetLimitCreateTest extends BaseTest {
     @Autowired private WalletRedisClient redisClient;
     @Autowired private CapAdminClient capAdminClient;
     @Autowired private TestUtils utils;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     @Test
     @DisplayName("Создание single-bet лимита")

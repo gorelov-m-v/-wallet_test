@@ -8,10 +8,8 @@ import com.uplatform.wallet_tests.api.http.manager.dto.gambling.*;
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.enums.ApiEndpoints;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsGamblingTransactionOperation;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import feign.FeignException;
 import io.qameta.allure.*;
@@ -43,8 +41,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class ManagerSignatureNegativeParametrizedTest extends BaseParameterizedTest {
     @Autowired private ManagerClient managerClient;
     @Autowired private TestUtils utils;
-    @Autowired private DefaultTestSteps defaultTestSteps;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     private RegisteredPlayerData registeredPlayer;
     private GameLaunchData gameLaunchData;

@@ -18,9 +18,7 @@ import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitIntervalType;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitType;
 import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
@@ -80,7 +78,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Suite("Позитивные сценарии: CasinoLossLimit")
 @Tag("Limits") @Tag("Wallet") @Tag("CasinoLossLimit")
 public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTest {
-    @Autowired private DefaultTestSteps defaultTestSteps;
     @Autowired private FapiClient publicClient;
     @Autowired private LimitKafkaClient limitKafkaClient;
     @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
@@ -88,7 +85,6 @@ public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTes
     @Autowired private WalletRedisClient redisClient;
     @Autowired private CapAdminClient capAdminClient;
     @Autowired private TestUtils utils;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     private static final BigDecimal limitAmount = new BigDecimal("100.15");
 

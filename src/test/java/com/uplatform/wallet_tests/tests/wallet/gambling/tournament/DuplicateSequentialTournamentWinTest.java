@@ -11,10 +11,8 @@ import com.uplatform.wallet_tests.api.nats.dto.NatsGamblingEventPayload;
 import com.uplatform.wallet_tests.api.nats.dto.NatsMessage;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsEventType;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
@@ -63,10 +61,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class DuplicateSequentialTournamentWinTest extends BaseTest {
 
     @Autowired private ManagerClient managerClient;
-    @Autowired private DefaultTestSteps defaultTestSteps;
     @Autowired private TestUtils utils;
     @Autowired private NatsClient natsClient;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("1000.00");
     private static final BigDecimal singleTournamentAmount = new BigDecimal("50.00");

@@ -16,9 +16,7 @@ import com.uplatform.wallet_tests.api.http.fapi.dto.launch.LaunchGameRequestBody
 import com.uplatform.wallet_tests.api.http.fapi.dto.launch.LaunchGameResponseBody;
 import com.uplatform.wallet_tests.api.kafka.client.GameSessionKafkaClient;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -39,11 +37,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Gambling") @Tag("Wallet") @Tag("Platform")
 class StartGameSessionTest extends BaseTest {
     @Autowired private FapiClient publicClient;
-    @Autowired private DefaultTestSteps defaultTestSteps;
     @Autowired private CoreDatabaseClient coreDatabaseClient;
     @Autowired private WalletDatabaseClient walletDatabaseClient;
     @Autowired private GameSessionKafkaClient gameSessionKafkaClient;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     private static final Random RANDOM = new Random();
 

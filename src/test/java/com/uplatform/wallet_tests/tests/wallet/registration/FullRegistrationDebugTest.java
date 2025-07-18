@@ -5,7 +5,6 @@ import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
@@ -44,7 +43,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Suite("Отладка: FullRegistrationWithKyc")
 @Tag("Wallet2")
 class FullRegistrationDebugTest extends BaseTest {
-    @Autowired private DefaultTestSteps defaultTestSteps;
 
     @Test
     @DisplayName("Полная регистрация игрока с KYC")

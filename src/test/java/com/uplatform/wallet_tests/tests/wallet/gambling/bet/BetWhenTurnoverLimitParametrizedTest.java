@@ -16,10 +16,8 @@ import com.uplatform.wallet_tests.api.nats.dto.enums.NatsEventType;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsGamblingTransactionOperation;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitIntervalType;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.GameLaunchData;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import feign.FeignException;
 import io.qameta.allure.*;
@@ -74,8 +72,6 @@ class BetWhenTurnoverLimitParametrizedTest extends BaseParameterizedTest {
     @Autowired private ManagerClient managerClient;
     @Autowired private NatsClient natsClient;
     @Autowired private TestUtils utils;
-    @Autowired private DefaultTestSteps defaultTestSteps;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     private RegisteredPlayerData registeredPlayer;
     private GameLaunchData gameLaunchData;

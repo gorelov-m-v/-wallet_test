@@ -7,9 +7,7 @@ import com.uplatform.wallet_tests.api.http.cap.client.CapAdminClient;
 import com.uplatform.wallet_tests.api.http.cap.dto.errors.ValidationErrorResponse;
 import com.uplatform.wallet_tests.api.http.cap.dto.update_blockers.UpdateBlockersRequest;
 import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
 import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import feign.FeignException;
 import io.qameta.allure.*;
@@ -38,9 +36,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Tag("Wallet") @Tag("CAP")
 class BlockersNegativeParametrizedTest extends BaseParameterizedTest {
     @Autowired private CapAdminClient capAdminClient;
-    @Autowired private DefaultTestSteps defaultTestSteps;
     @Autowired private TestUtils utils;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
 
     private RegisteredPlayerData registeredPlayer;
     private String platformNodeId;
