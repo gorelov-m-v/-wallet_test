@@ -1,37 +1,20 @@
 package com.uplatform.wallet_tests.tests.wallet.limit.single_bet;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
-import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.http.cap.client.CapAdminClient;
-import com.uplatform.wallet_tests.api.http.fapi.client.FapiClient;
 import com.uplatform.wallet_tests.api.http.fapi.dto.single_bet.SetSingleBetLimitRequest;
-import com.uplatform.wallet_tests.api.kafka.client.LimitKafkaClient;
-import com.uplatform.wallet_tests.api.kafka.client.WalletProjectionKafkaClient;
 import com.uplatform.wallet_tests.api.kafka.dto.LimitMessage;
-import com.uplatform.wallet_tests.api.nats.NatsClient;
 import com.uplatform.wallet_tests.api.nats.dto.NatsLimitChangedV2Payload;
 import com.uplatform.wallet_tests.api.nats.dto.NatsMessage;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsEventType;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitEventType;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitType;
-import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
-import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
-import com.uplatform.wallet_tests.config.EnvironmentConfigurationProvider;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
-import com.uplatform.wallet_tests.tests.default_steps.facade.DefaultTestSteps;
-import com.uplatform.wallet_tests.tests.util.facade.TestUtils;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.function.BiPredicate;
@@ -39,27 +22,12 @@ import java.util.function.BiPredicate;
 import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Execution(ExecutionMode.CONCURRENT)
 @Severity(SeverityLevel.BLOCKER)
 @Epic("Limits")
 @Feature("SingleBetLimit")
 @Suite("Позитивные сценарии: SingleBetLimit")
 @Tag("Limits") @Tag("Wallet")
-@TmsLink("NW-32")
-public class SingleBetLimitCreateTest {
-    @Autowired private DefaultTestSteps defaultTestSteps;
-    @Autowired private FapiClient publicClient;
-    @Autowired private LimitKafkaClient limitKafkaClient;
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private CapAdminClient capAdminClient;
-    @Autowired private TestUtils utils;
-    @Autowired private EnvironmentConfigurationProvider configProvider;
+public class SingleBetLimitCreateTest extends BaseTest {
 
     @Test
     @DisplayName("Создание single-bet лимита")
