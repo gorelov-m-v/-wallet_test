@@ -1,4 +1,5 @@
 package com.uplatform.wallet_tests.tests.wallet.betting.win;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,11 +29,8 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -44,15 +42,11 @@ import static com.uplatform.wallet_tests.tests.util.utils.MakePaymentRequestGene
 import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("Betting")
 @Feature("MakePayment")
 @Suite("Позитивные сценарии: MakePayment")
 @Tag("Betting") @Tag("Wallet")
-@TmsLink("")
 /**
  * Проверяет обработку win по ставке из iframe.
  *
@@ -80,7 +74,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
-class WinFromIframeTest {
+class WinFromIframeTest extends BaseTest {
     @Autowired private ManagerClient managerClient;
     @Autowired private WalletRedisClient redisClient;
     @Autowired private NatsClient natsClient;

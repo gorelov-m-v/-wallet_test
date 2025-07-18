@@ -1,4 +1,5 @@
 package com.uplatform.wallet_tests.tests.wallet.betting.loss;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
@@ -22,14 +23,8 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -43,17 +38,11 @@ import static com.uplatform.wallet_tests.api.http.manager.dto.betting.enums.Bett
 import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Execution(ExecutionMode.CONCURRENT)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("Betting")
 @Feature("MakePayment")
 @Suite("Позитивные сценарии: MakePayment")
 @Tag("Betting") @Tag("Wallet")
-@TmsLink("")
 /**
  * Проверяет получение loss для ставки, вытесненной из Redis.
  *
@@ -76,7 +65,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
-class LossDisplacedIframeBetTest {
+class LossDisplacedIframeBetTest extends BaseTest {
     @Autowired private WalletRedisClient redisClient;
     @Autowired private NatsClient natsClient;
     @Autowired private ManagerClient managerClient;

@@ -1,4 +1,5 @@
 package com.uplatform.wallet_tests.tests.wallet.gambling.tournament;
+import com.uplatform.wallet_tests.tests.base.BaseParameterizedTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
@@ -17,17 +18,11 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -38,18 +33,12 @@ import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Execution(ExecutionMode.CONCURRENT)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("Gambling")
 @Feature("/tournament")
 @Suite("Негативные сценарии: /tournament")
 @Tag("Gambling") @Tag("Wallet")
-@TmsLink("NW-23")
-class TournamentNegativeParametrizedTest {
+class TournamentNegativeParametrizedTest extends BaseParameterizedTest {
     @Autowired private ManagerClient managerClient;
     @Autowired private TestUtils utils;
     @Autowired private DefaultTestSteps defaultTestSteps;

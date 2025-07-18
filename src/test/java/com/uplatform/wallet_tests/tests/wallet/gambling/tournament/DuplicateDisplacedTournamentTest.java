@@ -1,4 +1,5 @@
 package com.uplatform.wallet_tests.tests.wallet.gambling.tournament;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
@@ -21,12 +22,8 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -67,17 +64,12 @@ import static org.junit.jupiter.api.Assertions.*;
  *       содержащий {@code transactionId} дублируемого запроса и нулевой баланс.</li>
  * </ol>
  */
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("Gambling")
 @Feature("/tournament")
 @Suite("Негативные сценарии: /tournament")
 @Tag("Gambling") @Tag("Wallet")
-@TmsLink("")
-class DuplicateDisplacedTournamentTest {
+class DuplicateDisplacedTournamentTest extends BaseTest {
 
     @Autowired private ManagerClient managerClient;
     @Autowired private DefaultTestSteps defaultTestSteps;

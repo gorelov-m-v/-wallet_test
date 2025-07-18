@@ -1,4 +1,5 @@
 package com.uplatform.wallet_tests.tests.wallet.registration;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
@@ -12,10 +13,7 @@ import io.qameta.allure.SeverityLevel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
 
 import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -40,15 +38,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  *
  * @see com.uplatform.wallet_tests.api.http.fapi.client.FapiClient
  */
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
 @Severity(SeverityLevel.NORMAL)
 @Epic("Registration")
 @Feature("FullRegistrationWithKyc")
 @Suite("Отладка: FullRegistrationWithKyc")
 @Tag("Wallet2")
-class FullRegistrationDebugTest {
+class FullRegistrationDebugTest extends BaseTest {
     @Autowired private DefaultTestSteps defaultTestSteps;
 
     @Test

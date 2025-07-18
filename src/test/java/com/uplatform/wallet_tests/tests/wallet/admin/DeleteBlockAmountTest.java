@@ -1,4 +1,5 @@
 package com.uplatform.wallet_tests.tests.wallet.admin;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
@@ -26,13 +27,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.function.BiPredicate;
@@ -42,17 +39,12 @@ import static com.uplatform.wallet_tests.tests.util.utils.StringGeneratorUtil.ge
 import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("CAP")
 @Feature("BlockAmount")
 @Suite("Позитивные сценарии: DeleteBlockAmount")
 @Tag("Wallet") @Tag("CAP")
-@TmsLink("")
-class DeleteBlockAmountTest {
+class DeleteBlockAmountTest extends BaseTest {
     @Autowired private CapAdminClient capAdminClient;
     @Autowired private WalletRedisClient redisClient;
     @Autowired private NatsClient natsClient;

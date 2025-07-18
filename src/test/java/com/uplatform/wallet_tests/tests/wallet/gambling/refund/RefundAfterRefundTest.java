@@ -1,4 +1,5 @@
 package com.uplatform.wallet_tests.tests.wallet.gambling.refund;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
@@ -20,11 +21,8 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -62,16 +60,12 @@ import static org.junit.jupiter.api.Assertions.*;
  *       и содержать ошибку {@link GamblingErrors#REFUND_NOT_ALLOWED}</li>
  * </ul>
  */
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("Gambling")
 @Feature("/refund")
 @Suite("Негативные сценарии: /refund")
 @Tag("Gambling") @Tag("Wallet")
-@TmsLink("")
-class RefundAfterRefundTest {
+class RefundAfterRefundTest extends BaseTest {
     @Autowired private ManagerClient managerClient;
     @Autowired private TestUtils utils;
     @Autowired private DefaultTestSteps defaultTestSteps;

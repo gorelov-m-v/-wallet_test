@@ -1,4 +1,5 @@
 package com.uplatform.wallet_tests.tests.wallet.betting.bet;
+import com.uplatform.wallet_tests.tests.base.BaseTest;
 
 import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
@@ -18,11 +19,8 @@ import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.ContextConfiguration;
 
 import java.math.BigDecimal;
 import java.util.function.BiPredicate;
@@ -32,15 +30,11 @@ import static com.uplatform.wallet_tests.tests.util.utils.MakePaymentRequestGene
 import static io.qameta.allure.Allure.step;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(CustomSuiteExtension.class)
-@SpringBootTest
-@ContextConfiguration(initializers = DynamicPropertiesConfigurator.class)
 @Severity(SeverityLevel.CRITICAL)
 @Epic("Betting")
 @Feature("MakePayment")
 @Suite("Негативные сценарии: MakePayment")
 @Tag("Betting") @Tag("Wallet") @Tag("Limits")
-@TmsLink("")
 /**
  * Проверяет отказ в ставке при превышении лимита SingleBet.
  *
@@ -66,7 +60,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
-class BetWithSingleBetLimitTest {
+class BetWithSingleBetLimitTest extends BaseTest {
     @Autowired private FapiClient publicClient;
     @Autowired private ManagerClient managerClient;
     @Autowired private DefaultTestSteps defaultTestSteps;
