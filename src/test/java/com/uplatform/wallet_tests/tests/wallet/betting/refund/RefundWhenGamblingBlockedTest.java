@@ -53,7 +53,6 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class RefundWhenGamblingBlockedTest extends BaseTest {
     @Autowired private CapAdminClient capAdminClient;
-    @Autowired private ManagerClient managerClient;
 
     @Test
     @DisplayName("Получение рефанда в iframe, игроком с заблокированным гемблингом")

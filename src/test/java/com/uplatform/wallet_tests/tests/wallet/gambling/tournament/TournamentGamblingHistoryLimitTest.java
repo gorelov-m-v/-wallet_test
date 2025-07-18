@@ -74,9 +74,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Gambling") @Tag("Wallet")
 @DisplayName("Проверка лимита агрегата Gambling транзакций в Redis для турнирных выигрышей")
 class TournamentGamblingHistoryLimitTest extends BaseTest {
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private ManagerClient managerClient;
 
     private static final BigDecimal operationAmount = new BigDecimal("5.00");
     private static final BigDecimal initialBalance = BigDecimal.ZERO;

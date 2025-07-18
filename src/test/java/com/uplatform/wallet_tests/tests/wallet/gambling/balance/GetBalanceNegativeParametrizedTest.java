@@ -30,7 +30,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Suite("Негативные сценарии получения баланса игрока в игровой сессии")
 @Tag("Gambling") @Tag("Wallet")
 class GetBalanceNegativeParametrizedTest extends BaseParameterizedTest {
-    @Autowired private ManagerClient managerClient;
 
     static Stream<Arguments> negativeBalanceScenariosProvider() {
         final int VALIDATION_ERROR_CODE = 103;

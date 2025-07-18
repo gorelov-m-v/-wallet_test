@@ -70,9 +70,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Gambling") @Tag("Wallet") @Tag("Limits")
 class TurnoverLimitWhenRollbackTest extends BaseTest {
     @Autowired private FapiClient publicClient;
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("2000.00");
     private static final BigDecimal limitAmountBase = generateBigDecimalAmount(initialAdjustmentAmount);

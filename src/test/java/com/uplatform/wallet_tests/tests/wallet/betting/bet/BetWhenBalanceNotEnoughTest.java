@@ -49,7 +49,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
 class BetWhenBalanceNotEnoughTest extends BaseTest {
-    @Autowired private ManagerClient managerClient;
 
     @Test
     @DisplayName("Совершение ставки в iframe, превышающей баланс игрока")

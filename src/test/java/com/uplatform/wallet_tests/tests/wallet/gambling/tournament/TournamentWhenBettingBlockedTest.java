@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Gambling") @Tag("Wallet")
 class TournamentWhenBettingBlockedTest extends BaseTest {
     @Autowired private CapAdminClient capAdminClient;
-    @Autowired private ManagerClient managerClient;
 
     @Test
     @DisplayName("Получение выигрыша в турнире игроком с заблокированным гемблингом")

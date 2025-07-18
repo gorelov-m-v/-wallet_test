@@ -48,7 +48,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
 class LossForNonExistingBetTest extends BaseTest {
-    @Autowired private ManagerClient managerClient;
 
     @Test
     @DisplayName("Попытка зарегистрировать проигрыш для несуществующей ставки iframe")

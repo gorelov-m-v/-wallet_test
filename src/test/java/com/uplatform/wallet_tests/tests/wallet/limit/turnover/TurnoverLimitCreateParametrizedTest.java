@@ -79,9 +79,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 public class TurnoverLimitCreateParametrizedTest extends BaseParameterizedTest {
     @Autowired private FapiClient publicClient;
     @Autowired private LimitKafkaClient limitKafkaClient;
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
     @Autowired private CapAdminClient capAdminClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("2000.00");

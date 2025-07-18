@@ -63,9 +63,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
 class WinDisplacedIframeBetTest extends BaseTest {
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private ManagerClient managerClient;
 
     private static final BigDecimal singleBetAmount = new BigDecimal("1.00");
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("550.00");

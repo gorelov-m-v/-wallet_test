@@ -61,7 +61,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Tag("Gambling") @Tag("Wallet")
 class WinWhenBettingBlockedParametrizedTest extends BaseParameterizedTest {
     @Autowired private CapAdminClient capAdminClient;
-    @Autowired private ManagerClient managerClient;
 
     private RegisteredPlayerData registeredPlayer;
     private GameLaunchData gameLaunchData;

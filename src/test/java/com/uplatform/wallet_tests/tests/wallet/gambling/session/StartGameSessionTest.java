@@ -38,7 +38,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class StartGameSessionTest extends BaseTest {
     @Autowired private FapiClient publicClient;
     @Autowired private CoreDatabaseClient coreDatabaseClient;
-    @Autowired private WalletDatabaseClient walletDatabaseClient;
     @Autowired private GameSessionKafkaClient gameSessionKafkaClient;
 
     private static final Random RANDOM = new Random();

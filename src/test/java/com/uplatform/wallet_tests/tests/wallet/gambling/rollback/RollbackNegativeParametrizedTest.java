@@ -38,7 +38,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Suite("Негативные сценарии: /rollback")
 @Tag("Gambling") @Tag("Wallet")
 class RollbackNegativeParametrizedTest extends BaseParameterizedTest {
-    @Autowired private ManagerClient managerClient;
 
     private RegisteredPlayerData registeredPlayer;
     private GameLaunchData gameLaunchData;

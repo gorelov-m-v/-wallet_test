@@ -49,7 +49,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
 class RefundAfterRefundTest extends BaseTest {
-    @Autowired private ManagerClient managerClient;
 
     @Test
     @DisplayName("Проверка обработки рефанда после рефанда Refund -> Refund")

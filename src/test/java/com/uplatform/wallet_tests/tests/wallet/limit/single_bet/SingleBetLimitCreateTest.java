@@ -39,9 +39,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SingleBetLimitCreateTest extends BaseTest {
     @Autowired private FapiClient publicClient;
     @Autowired private LimitKafkaClient limitKafkaClient;
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
     @Autowired private CapAdminClient capAdminClient;
 
     @Test

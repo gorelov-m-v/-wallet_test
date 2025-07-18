@@ -45,9 +45,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Tag("Wallet") @Tag("CAP")
 class BalanceAdjustmentParametrizedTest extends BaseParameterizedTest {
     @Autowired private CapAdminClient capAdminClient;
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private NatsClient natsClient;
 
     private final BigDecimal initialBalance = new BigDecimal("150.00");
     private final BigDecimal adjustmentAmount = new BigDecimal("100.00");

@@ -38,9 +38,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Betting") @Tag("Wallet") @Tag("Limits")
 class TurnoverLimitWhenWinFromIframeTest extends BaseTest {
     @Autowired private FapiClient publicClient;
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
     private static final BigDecimal limitAmountBase = generateBigDecimalAmount(initialAdjustmentAmount);

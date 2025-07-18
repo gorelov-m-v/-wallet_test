@@ -65,7 +65,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Негативные сценарии: /bet")
 @Tag("Gambling") @Tag("Wallet")
 class DuplicateBetConcurrencyParametrizedTest extends BaseParameterizedTest {
-    @Autowired private ManagerClient managerClient;
 
     private RegisteredPlayerData registeredPlayer;
     private GameLaunchData gameLaunchData;

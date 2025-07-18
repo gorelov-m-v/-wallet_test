@@ -74,11 +74,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
 class BetFromIframeTest extends BaseTest {
-    @Autowired private ManagerClient managerClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
-    @Autowired private WalletDatabaseClient walletDatabaseClient;
 
     @Test
     @DisplayName("Проверка обработки ставки iframe")

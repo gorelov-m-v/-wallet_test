@@ -83,7 +83,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Suite("Негативные сценарии: /refund")
 @Tag("Gambling") @Tag("Wallet")
 class RefundAfterWinParametrizedTest extends BaseParameterizedTest {
-    @Autowired private ManagerClient managerClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
 

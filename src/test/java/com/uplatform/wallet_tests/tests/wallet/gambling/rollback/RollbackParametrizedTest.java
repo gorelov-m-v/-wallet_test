@@ -104,11 +104,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Позитивные сценарии: /rollback")
 @Tag("Gambling") @Tag("Wallet")
 class RollbackParametrizedTest extends BaseParameterizedTest {
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletDatabaseClient walletDatabaseClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
     private static final String expectedCurrencyRates = "1";

@@ -59,8 +59,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Gambling") @Tag("Wallet") @Tag("Idempotency")
 class DuplicateSequentialTournamentWinTest extends BaseTest {
 
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("1000.00");
     private static final BigDecimal singleTournamentAmount = new BigDecimal("50.00");

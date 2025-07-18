@@ -44,9 +44,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Tag("Gambling") @Tag("Wallet") @Tag("Limits")
 class CasinoLossLimitWhenWinFromGambleParameterizedTest extends BaseParameterizedTest {
     @Autowired private FapiClient publicClient;
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
 
     static Stream<Arguments> blockedBetProvider() {
         return Stream.of(

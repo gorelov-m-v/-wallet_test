@@ -67,8 +67,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Gambling") @Tag("Wallet")
 class DuplicateSequentialWinParametrizedTest extends BaseParameterizedTest {
 
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("100.00");
     private static final BigDecimal betAmount = new BigDecimal("10.00");

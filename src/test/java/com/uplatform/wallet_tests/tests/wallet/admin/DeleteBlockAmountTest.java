@@ -43,9 +43,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Wallet") @Tag("CAP")
 class DeleteBlockAmountTest extends BaseTest {
     @Autowired private CapAdminClient capAdminClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
 
     private String platformNodeId;
 

@@ -68,9 +68,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Gambling") @Tag("Wallet")
 class DuplicateDisplacedTournamentTest extends BaseTest {
 
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("1000.00");
     private static final BigDecimal singleTournamentAmount = new BigDecimal("10.00");

@@ -37,10 +37,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Wallet") @Tag("СAP")
 class BlockersParametrizedTest extends BaseParameterizedTest {
     @Autowired private CapAdminClient capAdminClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletDatabaseClient walletDatabaseClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
 
     private String platformNodeId;
 

@@ -39,9 +39,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Wallet") @Tag("CAP")
 class BlockAmountTest extends BaseTest {
     @Autowired private CapAdminClient capAdminClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
 
     @Test
     @DisplayName("Проверка создания блокировки средств на кошельке игрока")

@@ -81,7 +81,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Suite("Негативные сценарии: /rollback")
 @Tag("Gambling") @Tag("Wallet")
 class RollbackAfterWinParametrizedTest extends BaseParameterizedTest {
-    @Autowired private ManagerClient managerClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
 

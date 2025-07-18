@@ -41,9 +41,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Gambling") @Tag("Wallet") @Tag("Limits")
 class CasinoLossLimitWhenRefundFromGambleTest extends BaseTest {
     @Autowired private FapiClient publicClient;
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
 
     @Test
     @DisplayName("Изменение остатка CasinoLossLimit при получении рефанда в казино")

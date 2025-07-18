@@ -62,8 +62,6 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class BetWithTurnoverLimitTest extends BaseTest {
     @Autowired private FapiClient publicClient;
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
 
     @Test
     @DisplayName("Совершение ставки в iframe, превышающей TurnoverLimit")

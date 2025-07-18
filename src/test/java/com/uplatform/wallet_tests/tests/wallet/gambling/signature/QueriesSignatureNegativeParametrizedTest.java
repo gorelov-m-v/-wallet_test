@@ -35,7 +35,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Suite("Негативные сценарии: GAS Signature")
 @Tag("Gambling") @Tag("Wallet")
 class QueriesSignatureNegativeParametrizedTest extends BaseParameterizedTest {
-    @Autowired private ManagerClient managerClient;
 
     private RegisteredPlayerData registeredPlayer;
     private GameLaunchData gameLaunchData;

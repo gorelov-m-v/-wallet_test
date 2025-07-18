@@ -40,9 +40,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("Betting") @Tag("Wallet") @Tag("Limits")
 class CasinoLossWhenLossFromIframeTest extends BaseTest {
     @Autowired private FapiClient publicClient;
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
 
     @Test
     @DisplayName("Изменение остатка CasinoLossLimit при получении проигрыша от iframe")

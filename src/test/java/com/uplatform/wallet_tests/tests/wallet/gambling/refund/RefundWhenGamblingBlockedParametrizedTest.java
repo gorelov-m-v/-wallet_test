@@ -63,7 +63,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Tag("Gambling") @Tag("Wallet")
 class RefundWhenGamblingBlockedParametrizedTest extends BaseParameterizedTest {
     @Autowired private CapAdminClient capAdminClient;
-    @Autowired private ManagerClient managerClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
 

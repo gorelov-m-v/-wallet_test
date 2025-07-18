@@ -83,11 +83,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Позитивные сценарии: /bet")
 @Tag("Gambling") @Tag("Wallet")
 class BetParametrizedTest extends BaseParameterizedTest {
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private WalletDatabaseClient walletDatabaseClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private ManagerClient managerClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
     private final String expectedCurrencyRates = "1";

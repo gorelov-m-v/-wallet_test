@@ -73,9 +73,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Негативные сценарии: /win")
 @Tag("Gambling") @Tag("Wallet")
 class DuplicateDisplacedWinParametrizedTest extends BaseParameterizedTest {
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("100.00");
     private static final BigDecimal defaultWinAmount = new BigDecimal("1.00");

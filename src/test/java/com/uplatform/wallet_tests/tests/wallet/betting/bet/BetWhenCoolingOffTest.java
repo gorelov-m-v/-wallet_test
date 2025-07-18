@@ -55,7 +55,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
 class BetWhenCoolingOffTest extends BaseTest {
-    @Autowired private ManagerClient managerClient;
     @Autowired private FapiClient publicClient;
 
     @Test

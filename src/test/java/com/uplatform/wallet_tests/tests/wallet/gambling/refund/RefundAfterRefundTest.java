@@ -63,7 +63,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Негативные сценарии: /refund")
 @Tag("Gambling") @Tag("Wallet")
 class RefundAfterRefundTest extends BaseTest {
-    @Autowired private ManagerClient managerClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
     private static final BigDecimal betAmount = generateBigDecimalAmount(initialAdjustmentAmount);

@@ -68,8 +68,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Tag("Gambling") @Tag("Wallet") @Tag("Limits")
 class BetWhenTurnoverLimitParametrizedTest extends BaseParameterizedTest {
     @Autowired private FapiClient publicClient;
-    @Autowired private ManagerClient managerClient;
-    @Autowired private NatsClient natsClient;
 
     private RegisteredPlayerData registeredPlayer;
     private GameLaunchData gameLaunchData;

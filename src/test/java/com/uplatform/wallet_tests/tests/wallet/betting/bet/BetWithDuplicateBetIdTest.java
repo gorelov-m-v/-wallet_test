@@ -52,7 +52,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
 class BetWithDuplicateBetIdTest extends BaseTest {
-    @Autowired private ManagerClient managerClient;
 
     @Test
     @DisplayName("Совершение ставки в iframe с неуникальным betId (проверка идемпотентности по ID)")

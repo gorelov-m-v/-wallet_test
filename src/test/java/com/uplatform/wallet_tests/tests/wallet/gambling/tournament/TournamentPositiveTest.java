@@ -38,11 +38,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Позитивные сценарии: /tournament")
 @Tag("Gambling") @Tag("Wallet")
 class TournamentPositiveTest extends BaseTest {
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private ManagerClient managerClient;
-    @Autowired private WalletDatabaseClient walletDatabaseClient;
-    @Autowired private NatsClient natsClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("150.00");
     private static final BigDecimal tournamentAmount = generateBigDecimalAmount(initialAdjustmentAmount);

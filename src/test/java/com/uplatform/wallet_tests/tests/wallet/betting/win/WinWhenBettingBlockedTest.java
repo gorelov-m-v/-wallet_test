@@ -53,7 +53,6 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class WinWhenBettingBlockedTest extends BaseTest {
     @Autowired private CapAdminClient capAdminClient;
-    @Autowired private ManagerClient managerClient;
 
     @Test
     @DisplayName("Получение выигрыша в iframe, игроком с заблокированным беттингом")

@@ -78,9 +78,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 @Tag("Gambling") @Tag("Wallet")
 @DisplayName("Проверка лимита агрегата Gambling транзакций в Redis для различных типов операций")
 class WinGamblingHistoryLimitTest extends BaseParameterizedTest {
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private ManagerClient managerClient;
 
     private static final BigDecimal operationAmount = new BigDecimal("1.00");
     private static final BigDecimal initialBalance = BigDecimal.ZERO;

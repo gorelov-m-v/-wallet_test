@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Позитивный сценарий получения баланса игрока в игровой сессии")
 @Tag("Gambling") @Tag("Wallet")
 class GetBalancePositiveTest extends BaseTest {
-    @Autowired private ManagerClient managerClient;
 
     @Test
     @DisplayName("Позитивный сценарий получения баланса игрока в игровой сессии")

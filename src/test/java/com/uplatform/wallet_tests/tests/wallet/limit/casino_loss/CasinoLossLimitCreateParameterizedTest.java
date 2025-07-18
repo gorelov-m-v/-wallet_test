@@ -79,9 +79,6 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTest {
     @Autowired private FapiClient publicClient;
     @Autowired private LimitKafkaClient limitKafkaClient;
-    @Autowired private WalletProjectionKafkaClient walletProjectionKafkaClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private WalletRedisClient redisClient;
     @Autowired private CapAdminClient capAdminClient;
 
     private static final BigDecimal limitAmount = new BigDecimal("100.15");

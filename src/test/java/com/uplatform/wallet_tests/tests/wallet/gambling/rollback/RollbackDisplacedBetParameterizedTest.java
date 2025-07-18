@@ -82,9 +82,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Suite("Позитивные сценарии: /rollback")
 @Tag("Gambling") @Tag("Wallet")
 class RollbackDisplacedBetParameterizedTest extends BaseParameterizedTest {
-    @Autowired private WalletRedisClient redisClient;
-    @Autowired private NatsClient natsClient;
-    @Autowired private ManagerClient managerClient;
 
     private static final BigDecimal initialAdjustmentAmount = new BigDecimal("1000.00");
 

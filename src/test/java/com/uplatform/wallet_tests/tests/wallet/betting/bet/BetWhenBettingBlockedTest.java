@@ -53,7 +53,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @see com.uplatform.wallet_tests.api.http.manager.client.ManagerClient
  */
 class BetWhenBettingBlockedTest extends BaseTest {
-    @Autowired private ManagerClient managerClient;
     @Autowired private CapAdminClient capAdminClient;
 
     @Test
