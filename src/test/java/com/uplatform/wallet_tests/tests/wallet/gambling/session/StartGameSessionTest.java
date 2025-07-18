@@ -1,9 +1,7 @@
 package com.uplatform.wallet_tests.tests.wallet.gambling.session;
 import com.uplatform.wallet_tests.tests.base.BaseTest;
 
-import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.db.WalletDatabaseClient;
 import com.uplatform.wallet_tests.api.db.entity.core.CoreGame;
 import com.uplatform.wallet_tests.api.db.entity.core.CoreGameSession;
 import com.uplatform.wallet_tests.api.db.entity.core.GameProvider;
@@ -12,7 +10,6 @@ import com.uplatform.wallet_tests.api.db.entity.wallet.WalletGameSession;
 import com.uplatform.wallet_tests.api.http.fapi.dto.get_games.FapiGame;
 import com.uplatform.wallet_tests.api.http.fapi.dto.launch.LaunchGameRequestBody;
 import com.uplatform.wallet_tests.api.http.fapi.dto.launch.LaunchGameResponseBody;
-import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;

@@ -1,9 +1,7 @@
 package com.uplatform.wallet_tests.tests.wallet.registration;
 import com.uplatform.wallet_tests.tests.base.BaseTest;
 
-import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
@@ -33,8 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  *   <li>Kafka</li>
  *   <li>Redis</li>
  * </ul>
- *
  * @see com.uplatform.wallet_tests.api.http.fapi.client.FapiClient
+ *
  */
 @Severity(SeverityLevel.NORMAL)
 @Epic("Registration")

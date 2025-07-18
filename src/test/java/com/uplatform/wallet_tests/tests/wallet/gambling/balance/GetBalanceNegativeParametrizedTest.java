@@ -1,12 +1,9 @@
 package com.uplatform.wallet_tests.tests.wallet.gambling.balance;
 import com.uplatform.wallet_tests.tests.base.BaseParameterizedTest;
 
-import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
-import com.uplatform.wallet_tests.api.http.manager.client.ManagerClient;
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.GamblingError;
 import com.uplatform.wallet_tests.api.http.manager.dto.gambling.enums.ApiEndpoints;
-import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import feign.FeignException;
 import io.qameta.allure.*;
 import org.junit.jupiter.api.DisplayName;

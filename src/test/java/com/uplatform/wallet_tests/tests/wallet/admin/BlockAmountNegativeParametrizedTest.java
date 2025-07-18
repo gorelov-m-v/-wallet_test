@@ -1,11 +1,9 @@
 package com.uplatform.wallet_tests.tests.wallet.admin;
 import com.uplatform.wallet_tests.tests.base.BaseParameterizedTest;
 
-import com.uplatform.wallet_tests.allure.CustomSuiteExtension;
 import com.uplatform.wallet_tests.allure.Suite;
 import com.uplatform.wallet_tests.api.http.cap.dto.create_block_amount.CreateBlockAmountRequest;
 import com.uplatform.wallet_tests.api.http.cap.dto.errors.ValidationErrorResponse;
-import com.uplatform.wallet_tests.config.DynamicPropertiesConfigurator;
 import com.uplatform.wallet_tests.tests.default_steps.dto.RegisteredPlayerData;
 import feign.FeignException;
 import io.qameta.allure.*;
