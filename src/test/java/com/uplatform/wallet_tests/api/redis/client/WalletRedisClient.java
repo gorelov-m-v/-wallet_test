@@ -12,12 +12,13 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 @Slf4j
-public class WalletRedisClient extends AbstractRedisClient {
+public class WalletRedisClient extends AbstractRedisClient<WalletFullData> {
 
     public WalletRedisClient(@Qualifier("walletRedisTemplate") RedisTemplate<String, String> redisTemplate,
                              RedisRetryHelper retryHelper,
                              AllureAttachmentService attachmentService) {
-        super("WALLET", redisTemplate, retryHelper, attachmentService);
+        super("WALLET", redisTemplate, retryHelper, attachmentService,
+                new TypeReference<WalletFullData>() {});
     }
 
     public WalletFullData getWalletDataWithSeqCheck(String key, int expectedSeq) {
@@ -33,6 +34,6 @@ public class WalletRedisClient extends AbstractRedisClient {
             }
             return new CheckResult(false, String.format("Sequence mismatch: current=%d, expected=%d", currentSeq, expectedSeq));
         };
-        return getWithCheck(key, new TypeReference<WalletFullData>() {}, checkFunc);
+        return getWithCheck(key, checkFunc);
     }
 }

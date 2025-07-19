@@ -294,7 +294,9 @@ step("Kafka: получение сообщения", () -> {
 `getWithCheck` для извлечения данных с повторами через `RedisRetryHelper` и
 автоматически формирует аттачи в Allure при каждом обращении. Конкретные
 клиенты, например `PlayerRedisClient` и `WalletRedisClient`, лишь расширяют
-его и реализуют методы для своих ключей.
+его и реализуют методы для своих ключей. Абстракция принимает тип значения
+как параметр и хранит `TypeReference<T>` в конструкторе, поэтому тип
+десериализации не нужно указывать при каждом вызове.
 
 ### 2. Как настроить подключение
 
@@ -393,18 +395,19 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.stereotype.Component;
 
 @Component
-public class BonusRedisClient extends AbstractRedisClient {
+public class BonusRedisClient extends AbstractRedisClient<BonusAggregate> {
 
     public BonusRedisClient(
             @Qualifier("bonusRedisTemplate") RedisTemplate<String, String> template,
             RedisRetryHelper retryHelper,
             AllureAttachmentService attachmentService
     ) {
-        super("BONUS", template, retryHelper, attachmentService);
+        super("BONUS", template, retryHelper, attachmentService,
+                new TypeReference<BonusAggregate>() {});
     }
 
     public BonusAggregate getBonus(String key) {
-        return getWithRetry(key, new TypeReference<BonusAggregate>() {});
+        return getWithRetry(key);
     }
 }
 ```
