@@ -102,28 +102,28 @@ class RollbackWhenBettingBlockedParametrizedTest extends BaseParameterizedTest {
         final String platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             BetRequestBody betRequestBody;
             BigDecimal expectedBalanceAfterRollback;
         }
-        final TestData testData = new TestData();
-        testData.expectedBalanceAfterRollback = initialAdjustmentAmount;
+        final TestContext ctx = new TestContext();
+        ctx.expectedBalanceAfterRollback = initialAdjustmentAmount;
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.game_session");
         });
 
         step("Manager API: Совершение исходной транзакции (ставки)", () -> {
-            testData.betRequestBody = BetRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+            ctx.betRequestBody = BetRequestBody.builder()
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(betAmountParam)
                     .transactionId(UUID.randomUUID().toString())
                     .type(betTypeParam)
@@ -133,8 +133,8 @@ class RollbackWhenBettingBlockedParametrizedTest extends BaseParameterizedTest {
 
             var response = managerClient.bet(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.BET, testData.betRequestBody),
-                    testData.betRequestBody);
+                    utils.createSignature(ApiEndpoints.BET, ctx.betRequestBody),
+                    ctx.betRequestBody);
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.bet.status_code");
         });
@@ -146,7 +146,7 @@ class RollbackWhenBettingBlockedParametrizedTest extends BaseParameterizedTest {
                     .build();
 
             var response = capAdminClient.updateBlockers(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId,
                     request
@@ -156,14 +156,14 @@ class RollbackWhenBettingBlockedParametrizedTest extends BaseParameterizedTest {
 
         step("Manager API: Выполнение роллбэка транзакции", () -> {
             var rollbackRequestBody = com.uplatform.wallet_tests.api.http.manager.dto.gambling.RollbackRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(betAmountParam)
                     .transactionId(UUID.randomUUID().toString())
-                    .rollbackTransactionId(testData.betRequestBody.getTransactionId())
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
-                    .playerId(testData.registeredPlayer.getWalletData().getWalletUUID())
-                    .gameUuid(testData.gameLaunchData.getDbGameSession().getGameUuid())
-                    .roundId(testData.betRequestBody.getRoundId())
+                    .rollbackTransactionId(ctx.betRequestBody.getTransactionId())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
+                    .playerId(ctx.registeredPlayer.getWalletData().getWalletUUID())
+                    .gameUuid(ctx.gameLaunchData.getDbGameSession().getGameUuid())
+                    .roundId(ctx.betRequestBody.getRoundId())
                     .roundClosed(true)
                     .build();
 
@@ -176,7 +176,7 @@ class RollbackWhenBettingBlockedParametrizedTest extends BaseParameterizedTest {
             assertAll("Проверка статус-кода и тела ответа при роллбэке",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.rollback.status_code"),
                     () -> assertEquals(rollbackRequestBody.getTransactionId(), response.getBody().getTransactionId(), "manager_api.rollback.transaction_id"),
-                    () -> assertEquals(0, testData.expectedBalanceAfterRollback.compareTo(response.getBody().getBalance()), "manager_api.rollback.balance")
+                    () -> assertEquals(0, ctx.expectedBalanceAfterRollback.compareTo(response.getBody().getBalance()), "manager_api.rollback.balance")
             );
         });
     }

@@ -32,7 +32,7 @@ class BlockersParametrizedTest extends BaseParameterizedTest {
     private String platformNodeId;
 
     @BeforeAll
-    void setupGlobalTestData() {
+    void setupGlobalTestContext() {
         this.platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
     }
 
@@ -52,37 +52,37 @@ class BlockersParametrizedTest extends BaseParameterizedTest {
             boolean gamblingEnabled,
             boolean bettingEnabled,
             String description) {
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             UpdateBlockersRequest updateBlockersRequest;
             NatsMessage<NatsPreventGambleSettedPayload> updateBlockersEvent;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer();
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer();
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("CAP API: Обновление блокировок", () -> {
-            testData.updateBlockersRequest = UpdateBlockersRequest.builder()
+            ctx.updateBlockersRequest = UpdateBlockersRequest.builder()
                     .gamblingEnabled(gamblingEnabled)
                     .bettingEnabled(bettingEnabled)
                     .build();
 
             var response = capAdminClient.updateBlockers(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId,
-                    testData.updateBlockersRequest
+                    ctx.updateBlockersRequest
             );
             assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode(), "cap_api.update_blockers.status_code");
         });
 
         step("NATS: Проверка поступления события setting_prevent_gamble_setted", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID()
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID()
             );
 
             var filter = (BiPredicate<NatsPreventGambleSettedPayload, String>) (payload, typeHeader) ->
@@ -90,21 +90,21 @@ class BlockersParametrizedTest extends BaseParameterizedTest {
                             && payload.isGamblingActive() == gamblingEnabled
                             && payload.isBettingActive() == bettingEnabled;
 
-            testData.updateBlockersEvent = natsClient.findMessageAsync(
+            ctx.updateBlockersEvent = natsClient.findMessageAsync(
                     subject,
                     NatsPreventGambleSettedPayload.class,
                     filter).get();
 
             assertAll(
-                    () -> assertEquals(gamblingEnabled, testData.updateBlockersEvent.getPayload().isGamblingActive(), "nats.update_blockers.gambling_enabled"),
-                    () -> assertEquals(bettingEnabled, testData.updateBlockersEvent.getPayload().isBettingActive(), "nats.update_blockers.betting_enabled"),
-                    () -> assertNotNull(testData.updateBlockersEvent.getPayload().getCreatedAt(), "nats.update_blockers.created_at")
+                    () -> assertEquals(gamblingEnabled, ctx.updateBlockersEvent.getPayload().isGamblingActive(), "nats.update_blockers.gambling_enabled"),
+                    () -> assertEquals(bettingEnabled, ctx.updateBlockersEvent.getPayload().isBettingActive(), "nats.update_blockers.betting_enabled"),
+                    () -> assertNotNull(ctx.updateBlockersEvent.getPayload().getCreatedAt(), "nats.update_blockers.created_at")
             );
         });
 
         step("DB Wallet: Проверка флагов в таблице wallet", () -> {
             var wallet = walletDatabaseClient.findWalletByUuidOrFail(
-                    testData.registeredPlayer.getWalletData().getWalletUUID()
+                    ctx.registeredPlayer.getWalletData().getWalletUUID()
             );
             assertAll(
                     () -> assertEquals(gamblingEnabled, wallet.isGamblingActive(), "db.wallet.gambling_active"),
@@ -114,8 +114,8 @@ class BlockersParametrizedTest extends BaseParameterizedTest {
 
         step("Redis(Wallet): Проверка флагов активности в Redis", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.updateBlockersEvent.getSequence()
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.updateBlockersEvent.getSequence()
             );
             assertAll(
                     () -> assertEquals(gamblingEnabled, aggregate.isGamblingActive(), "redis.wallet.gambling_active"),
@@ -125,7 +125,7 @@ class BlockersParametrizedTest extends BaseParameterizedTest {
 
         step("CAP API: Проверка получения блокировок", () -> {
             var response = capAdminClient.getBlockers(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId);
             assertNotNull(response.getBody(), "cap_api.get_blockers.body_not_null");
@@ -138,8 +138,8 @@ class BlockersParametrizedTest extends BaseParameterizedTest {
 
         step("Kafka: Проверка поступления сообщения setting_prevent_gamble_setted в топик wallet.v8.projectionSource", () -> {
             var kafkaMsg = walletProjectionKafkaClient.expectWalletProjectionMessageBySeqNum(
-                    testData.updateBlockersEvent.getSequence());
-            assertTrue(utils.areEquivalent(kafkaMsg, testData.updateBlockersEvent), "kafka.payload");
+                    ctx.updateBlockersEvent.getSequence());
+            assertTrue(utils.areEquivalent(kafkaMsg, ctx.updateBlockersEvent), "kafka.payload");
         });
     }
 }

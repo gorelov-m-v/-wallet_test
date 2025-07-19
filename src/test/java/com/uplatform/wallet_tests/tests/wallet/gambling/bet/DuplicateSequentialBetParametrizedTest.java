@@ -79,27 +79,27 @@ class DuplicateSequentialBetParametrizedTest extends BaseParameterizedTest {
     void testDuplicateBetReturnsIdempotentResponse(NatsGamblingTransactionOperation operationParam, BigDecimal betAmountParam)  {
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             BetRequestBody firstBetRequest;
             NatsMessage<NatsGamblingEventPayload> firstBetNatsEvent;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("Manager API: Совершение первой ставки", () -> {
-            testData.firstBetRequest = BetRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+            ctx.firstBetRequest = BetRequestBody.builder()
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(betAmountParam)
                     .transactionId(UUID.randomUUID().toString())
                     .type(operationParam)
@@ -109,34 +109,34 @@ class DuplicateSequentialBetParametrizedTest extends BaseParameterizedTest {
 
             var response = managerClient.bet(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.BET, testData.firstBetRequest),
-                    testData.firstBetRequest);
+                    utils.createSignature(ApiEndpoints.BET, ctx.firstBetRequest),
+                    ctx.firstBetRequest);
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.bet.first_bet_status_code");
         });
 
         step("NATS: Ожидание NATS-события betted_from_gamble для первой ставки", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.BETTED_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                            testData.firstBetRequest.getTransactionId().equals(payload.getUuid());
+                            ctx.firstBetRequest.getTransactionId().equals(payload.getUuid());
 
-            testData.firstBetNatsEvent = natsClient.findMessageAsync(
+            ctx.firstBetNatsEvent = natsClient.findMessageAsync(
                     subject,
                     NatsGamblingEventPayload.class,
                     filter).get();
 
-            assertNotNull(testData.firstBetNatsEvent, "nats.betted_from_gamble");
+            assertNotNull(ctx.firstBetNatsEvent, "nats.betted_from_gamble");
         });
 
         step("Manager API: Попытка дублирования ставки", () -> {
             var duplicateResponse = managerClient.bet(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.BET, testData.firstBetRequest),
-                    testData.firstBetRequest
+                    utils.createSignature(ApiEndpoints.BET, ctx.firstBetRequest),
+                    ctx.firstBetRequest
             );
 
             var responseBody = duplicateResponse.getBody();
@@ -144,7 +144,7 @@ class DuplicateSequentialBetParametrizedTest extends BaseParameterizedTest {
             assertAll("Проверка ответа на дубликат ставки",
                     () -> assertEquals(HttpStatus.OK, duplicateResponse.getStatusCode(), "manager_api.bet.duplicate_bet_status_code"),
                     () -> assertNotNull(responseBody, "manager_api.bet.duplicate_bet_response_body"),
-                    () -> assertEquals(testData.firstBetRequest.getTransactionId(), responseBody.getTransactionId(), "manager_api.bet.duplicate_bet_transaction_id"),
+                    () -> assertEquals(ctx.firstBetRequest.getTransactionId(), responseBody.getTransactionId(), "manager_api.bet.duplicate_bet_transaction_id"),
                     () -> assertEquals(0, BigDecimal.ZERO.compareTo(responseBody.getBalance()), "manager_api.bet.duplicate_bet_balance")
             );
         });

@@ -216,33 +216,33 @@ class BlockAmountNegativeParametrizedTest extends BaseParameterizedTest {
             String expectedMessage,
             Map<String, List<String>> expectedFieldErrors)
     {
-        final class TestData {
+        final class TestContext {
             CreateBlockAmountRequest request;
             String playerUuid;
             String authHeader;
             String nodeId;
         }
 
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Подготовка параметров запроса", () -> {
-            testData.request = CreateBlockAmountRequest.builder()
+            ctx.request = CreateBlockAmountRequest.builder()
                     .reason("Test block amount negative")
                     .amount(validBlockAmount.toString())
                     .currency(registeredPlayer.getWalletData().getCurrency())
                     .build();
 
-            requestModifier.accept(testData.request);
+            requestModifier.accept(ctx.request);
 
-            testData.playerUuid = (customPlayerUuid != null)
+            ctx.playerUuid = (customPlayerUuid != null)
                     ? customPlayerUuid
                     : registeredPlayer.getWalletData().getPlayerUUID();
 
-            testData.authHeader = (customAuthHeader != null)
+            ctx.authHeader = (customAuthHeader != null)
                     ? customAuthHeader
                     : utils.getAuthorizationHeader();
 
-            testData.nodeId = (customNodeId != null)
+            ctx.nodeId = (customNodeId != null)
                     ? customNodeId
                     : platformNodeId;
         });
@@ -251,10 +251,10 @@ class BlockAmountNegativeParametrizedTest extends BaseParameterizedTest {
             var exception = assertThrows(
                     FeignException.class,
                     () -> capAdminClient.createBlockAmount(
-                            testData.playerUuid,
-                            testData.authHeader,
-                            testData.nodeId,
-                            testData.request
+                            ctx.playerUuid,
+                            ctx.authHeader,
+                            ctx.nodeId,
+                            ctx.request
                     ),
                     "cap_api.create_block_amount.expected_exception"
             );

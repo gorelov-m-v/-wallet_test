@@ -139,67 +139,67 @@ class BetParametrizedTest extends BaseParameterizedTest {
         final String platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             BetRequestBody betRequestBody;
             NatsMessage<NatsGamblingEventPayload> betEvent;
             BigDecimal expectedBalance;
         }
-        final TestData testData = new TestData();
-        testData.expectedBalance = BigDecimal.ZERO.add(initialAdjustmentAmount).subtract(amountParam);
+        final TestContext ctx = new TestContext();
+        ctx.expectedBalance = BigDecimal.ZERO.add(initialAdjustmentAmount).subtract(amountParam);
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("Manager API: Совершение ставки", () -> {
             var request = BetRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(amountParam)
                     .transactionId(UUID.randomUUID().toString())
                     .type(operationParam)
                     .roundId(UUID.randomUUID().toString())
                     .roundClosed(false)
                     .build();
-            testData.betRequestBody = request;
+            ctx.betRequestBody = request;
 
             var response = managerClient.bet(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.BET, testData.betRequestBody),
-                    testData.betRequestBody);
+                    utils.createSignature(ApiEndpoints.BET, ctx.betRequestBody),
+                    ctx.betRequestBody);
 
             assertAll("Проверка статус-кода и тела ответа",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code"),
                     () -> assertEquals(request.getTransactionId(), response.getBody().getTransactionId(), "manager_api.body.transactionId"),
-                    () -> assertEquals(0, testData.expectedBalance.compareTo(response.getBody().getBalance()), "manager_api.body.balance")
+                    () -> assertEquals(0, ctx.expectedBalance.compareTo(response.getBody().getBalance()), "manager_api.body.balance")
             );
         });
 
         step("NATS: Проверка поступления события betted_from_gamble", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.BETTED_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                            testData.betRequestBody.getTransactionId().equals(payload.getUuid());
+                            ctx.betRequestBody.getTransactionId().equals(payload.getUuid());
 
-            testData.betEvent = natsClient.findMessageAsync(
+            ctx.betEvent = natsClient.findMessageAsync(
                     subject,
                     NatsGamblingEventPayload.class,
                     filter).get();
 
-            var betRequest = testData.betRequestBody;
-            var betEvent = testData.betEvent.getPayload();
-            var session = testData.gameLaunchData.getDbGameSession();
-            var player = testData.registeredPlayer.getWalletData();
+            var betRequest = ctx.betRequestBody;
+            var betEvent = ctx.betEvent.getPayload();
+            var session = ctx.gameLaunchData.getDbGameSession();
+            var player = ctx.registeredPlayer.getWalletData();
             assertAll("Проверка основных полей NATS payload",
                     () -> assertEquals(betRequest.getTransactionId(), betEvent.getUuid(), "nats.payload.uuid"),
                     () -> assertEquals(new UUID(0L, 0L).toString(), betEvent.getBetUuid(), "nats.payload.bet_uuid"),
@@ -232,11 +232,11 @@ class BetParametrizedTest extends BaseParameterizedTest {
         });
 
         step("DB Wallet: Проверка записи истории ставок в gambling_projection_transaction_history", () -> {
-            var transaction = walletDatabaseClient.findTransactionByUuidOrFail(testData.betRequestBody.getTransactionId());
-            var payload = testData.betEvent.getPayload();
+            var transaction = walletDatabaseClient.findTransactionByUuidOrFail(ctx.betRequestBody.getTransactionId());
+            var payload = ctx.betEvent.getPayload();
             assertAll("Проверка полей gambling_projection_transaction_history",
                     () -> assertEquals(payload.getUuid(), transaction.getUuid(), "db.gpth.uuid"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getPlayerUUID(), transaction.getPlayerUuid(), "db.gpth.player_uuid"),
+                    () -> assertEquals(ctx.registeredPlayer.getWalletData().getPlayerUUID(), transaction.getPlayerUuid(), "db.gpth.player_uuid"),
                     () -> assertNotNull(transaction.getDate(), "db.gpth.date"),
                     () -> assertEquals(payload.getType(), transaction.getType(), "db.gpth.type"),
                     () -> assertEquals(payload.getOperation(), transaction.getOperation(), "db.gpth.operation"),
@@ -245,14 +245,14 @@ class BetParametrizedTest extends BaseParameterizedTest {
                     () -> assertEquals(payload.getCurrency(), transaction.getCurrency(), "db.gpth.currency"),
                     () -> assertEquals(0, amountParam.negate().compareTo(transaction.getAmount()), "db.gpth.amount"),
                     () -> assertNotNull(transaction.getCreatedAt(), "db.gpth.created_at"),
-                    () -> assertEquals(testData.betEvent.getSequence(), transaction.getSeqnumber(), "db.gpth.seqnumber"),
+                    () -> assertEquals(ctx.betEvent.getSequence(), transaction.getSeqnumber(), "db.gpth.seqnumber"),
                     () -> assertEquals(payload.isProviderRoundClosed(), transaction.isProviderRoundClosed(), "db.gpth.provider_round_closed"),
                     () -> assertEquals(payload.getBetUuid(), transaction.getBetUuid(), "db.gpth.bet_uuid")
             );
         });
 
         step("DB Wallet: Проверка записи порога выигрыша в player_threshold_win", () -> {
-            var playerUuid = testData.registeredPlayer.getWalletData().getPlayerUUID();
+            var playerUuid = ctx.registeredPlayer.getWalletData().getPlayerUUID();
             var threshold = walletDatabaseClient.findThresholdByPlayerUuidOrFail(playerUuid);
             assertAll("Проверка полей player_threshold_win",
                     () -> assertEquals(playerUuid, threshold.getPlayerUuid(), "db.ptw.player_uuid"),
@@ -262,16 +262,16 @@ class BetParametrizedTest extends BaseParameterizedTest {
         });
 
         step("Redis(Wallet): Получение и проверка полных данных кошелька", () -> {
-            var walletUuid = testData.registeredPlayer.getWalletData().getWalletUUID();
-            int sequence = (int) testData.betEvent.getSequence();
-            var transactionUuid = testData.betEvent.getPayload().getUuid();
+            var walletUuid = ctx.registeredPlayer.getWalletData().getWalletUUID();
+            int sequence = (int) ctx.betEvent.getSequence();
+            var transactionUuid = ctx.betEvent.getPayload().getUuid();
 
             var aggregate = redisClient.getWalletDataWithSeqCheck(walletUuid, sequence);
 
             assertAll("Проверка данных в Redis",
                     () -> assertEquals(sequence, aggregate.getLastSeqNumber(), "redis.wallet.last_seq_number"),
-                    () -> assertEquals(0, testData.expectedBalance.compareTo(aggregate.getBalance()), "redis.wallet.balance"),
-                    () -> assertEquals(0, testData.expectedBalance.compareTo(aggregate.getAvailableWithdrawalBalance()), "redis.wallet.availableWithdrawalBalance"),
+                    () -> assertEquals(0, ctx.expectedBalance.compareTo(aggregate.getBalance()), "redis.wallet.balance"),
+                    () -> assertEquals(0, ctx.expectedBalance.compareTo(aggregate.getAvailableWithdrawalBalance()), "redis.wallet.availableWithdrawalBalance"),
                     () -> assertTrue(aggregate.getGambling().containsKey(transactionUuid), "redis.wallet.gambling.containsKey"),
                     () -> assertEquals(0, amountParam.negate().compareTo(aggregate.getGambling().get(transactionUuid).getAmount()), "redis.wallet.gambling.amount"),
                     () -> assertNotNull(aggregate.getGambling().get(transactionUuid).getCreatedAt(), "redis.wallet.gambling.createdAt")
@@ -280,9 +280,9 @@ class BetParametrizedTest extends BaseParameterizedTest {
 
         step("Kafka: Проверка поступления сообщения betted_from_gamble в топик wallet.v8.projectionSource", () -> {
             var kafkaMessage = walletProjectionKafkaClient.expectWalletProjectionMessageBySeqNum(
-                    testData.betEvent.getSequence());
+                    ctx.betEvent.getSequence());
 
-            assertTrue(utils.areEquivalent(kafkaMessage, testData.betEvent), "wallet.v8.projectionSource");
+            assertTrue(utils.areEquivalent(kafkaMessage, ctx.betEvent), "wallet.v8.projectionSource");
         });
     }
 }

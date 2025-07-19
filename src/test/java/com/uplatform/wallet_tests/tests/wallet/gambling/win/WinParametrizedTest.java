@@ -136,7 +136,7 @@ class WinParametrizedTest extends BaseParameterizedTest {
         final String platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             BetRequestBody betRequestBody;
@@ -145,31 +145,31 @@ class WinParametrizedTest extends BaseParameterizedTest {
             BigDecimal expectedBalanceAfterBet;
             BigDecimal expectedBalanceAfterWin;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
-        testData.expectedBalanceAfterBet = BigDecimal.ZERO.add(initialAdjustmentAmount).subtract(betAmountParam);
-        testData.expectedBalanceAfterWin = testData.expectedBalanceAfterBet.add(winAmountParam);
+        ctx.expectedBalanceAfterBet = BigDecimal.ZERO.add(initialAdjustmentAmount).subtract(betAmountParam);
+        ctx.expectedBalanceAfterWin = ctx.expectedBalanceAfterBet.add(winAmountParam);
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("Manager API: Совершение ставки", () -> {
             var request = BetRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(betAmountParam)
                     .transactionId(UUID.randomUUID().toString())
                     .type(NatsGamblingTransactionOperation.BET)
                     .roundId(UUID.randomUUID().toString())
                     .roundClosed(false)
                     .build();
-            testData.betRequestBody = request;
+            ctx.betRequestBody = request;
 
             var response = managerClient.bet(
                     casinoId,
@@ -180,51 +180,51 @@ class WinParametrizedTest extends BaseParameterizedTest {
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.bet.status_code"),
                     () -> assertNotNull(response.getBody(), "manager_api.bet.body_not_null"),
                     () -> assertEquals(request.getTransactionId(), response.getBody().getTransactionId(), "manager_api.bet.body.transactionId"),
-                    () -> assertEquals(0, testData.expectedBalanceAfterBet.compareTo(response.getBody().getBalance()), "manager_api.bet.body.balance")
+                    () -> assertEquals(0, ctx.expectedBalanceAfterBet.compareTo(response.getBody().getBalance()), "manager_api.bet.body.balance")
             );
         });
 
         step("Manager API: Получение выигрыша", () -> {
-            testData.winRequestBody = WinRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+            ctx.winRequestBody = WinRequestBody.builder()
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(winAmountParam)
                     .transactionId(UUID.randomUUID().toString())
                     .type(operationParam)
-                    .roundId(testData.betRequestBody.getRoundId())
+                    .roundId(ctx.betRequestBody.getRoundId())
                     .roundClosed(true)
                     .build();
 
             var response = managerClient.win(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.WIN, testData.winRequestBody),
-                    testData.winRequestBody);
+                    utils.createSignature(ApiEndpoints.WIN, ctx.winRequestBody),
+                    ctx.winRequestBody);
 
             assertAll("Проверка статус-кода и тела ответа выигрыша",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.win.status_code"),
                     () -> assertNotNull(response.getBody(), "manager_api.win.body_not_null"),
-                    () -> assertEquals(testData.winRequestBody.getTransactionId(), response.getBody().getTransactionId(), "manager_api.win.body.transactionId"),
-                    () -> assertEquals(0, testData.expectedBalanceAfterWin.compareTo(response.getBody().getBalance()), "manager_api.win.body.balance")
+                    () -> assertEquals(ctx.winRequestBody.getTransactionId(), response.getBody().getTransactionId(), "manager_api.win.body.transactionId"),
+                    () -> assertEquals(0, ctx.expectedBalanceAfterWin.compareTo(response.getBody().getBalance()), "manager_api.win.body.balance")
             );
         });
 
         step("NATS: Проверка поступления события won_from_gamble", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.WON_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                            testData.winRequestBody.getTransactionId().equals(payload.getUuid());
+                            ctx.winRequestBody.getTransactionId().equals(payload.getUuid());
 
-            testData.winEvent = natsClient.findMessageAsync(
+            ctx.winEvent = natsClient.findMessageAsync(
                     subject,
                     NatsGamblingEventPayload.class,
                     filter).get();
 
-            var winRequest = testData.winRequestBody;
-            var winEventPayload = testData.winEvent.getPayload();
-            var session = testData.gameLaunchData.getDbGameSession();
-            var player = testData.registeredPlayer.getWalletData();
+            var winRequest = ctx.winRequestBody;
+            var winEventPayload = ctx.winEvent.getPayload();
+            var session = ctx.gameLaunchData.getDbGameSession();
+            var player = ctx.registeredPlayer.getWalletData();
 
             assertAll("Проверка основных полей NATS payload",
                     () -> assertEquals(winRequest.getTransactionId(), winEventPayload.getUuid(), "nats.payload.uuid"),
@@ -259,12 +259,12 @@ class WinParametrizedTest extends BaseParameterizedTest {
         });
 
         step("DB Wallet: Проверка записи истории ставок в gambling_projection_transaction_history", () -> {
-            var transaction = walletDatabaseClient.findTransactionByUuidOrFail(testData.winRequestBody.getTransactionId());
-            var payload = testData.winEvent.getPayload();
+            var transaction = walletDatabaseClient.findTransactionByUuidOrFail(ctx.winRequestBody.getTransactionId());
+            var payload = ctx.winEvent.getPayload();
 
             assertAll("Проверка полей gambling_projection_transaction_history",
                     () -> assertEquals(payload.getUuid(), transaction.getUuid(), "db.gpth.uuid"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getPlayerUUID(), transaction.getPlayerUuid(), "db.gpth.player_uuid"),
+                    () -> assertEquals(ctx.registeredPlayer.getWalletData().getPlayerUUID(), transaction.getPlayerUuid(), "db.gpth.player_uuid"),
                     () -> assertNotNull(transaction.getDate(), "db.gpth.date"),
                     () -> assertEquals(payload.getType(), transaction.getType(), "db.gpth.type"),
                     () -> assertEquals(payload.getOperation(), transaction.getOperation(), "db.gpth.operation"),
@@ -273,14 +273,14 @@ class WinParametrizedTest extends BaseParameterizedTest {
                     () -> assertEquals(payload.getCurrency(), transaction.getCurrency(), "db.gpth.currency"),
                     () -> assertEquals(0, winAmountParam.compareTo(transaction.getAmount()), "db.gpth.amount"),
                     () -> assertNotNull(transaction.getCreatedAt(), "db.gpth.created_at"),
-                    () -> assertEquals(testData.winEvent.getSequence(), transaction.getSeqnumber(), "db.gpth.seqnumber"),
+                    () -> assertEquals(ctx.winEvent.getSequence(), transaction.getSeqnumber(), "db.gpth.seqnumber"),
                     () -> assertEquals(payload.isProviderRoundClosed(), transaction.isProviderRoundClosed(), "db.gpth.provider_round_closed"),
                     () -> assertEquals(payload.getBetUuid(), transaction.getBetUuid(), "db.gpth.bet_uuid")
             );
         });
 
         step("DB Wallet: Проверка записи порога выигрыша в player_threshold_win", () -> {
-            var playerUuid = testData.registeredPlayer.getWalletData().getPlayerUUID();
+            var playerUuid = ctx.registeredPlayer.getWalletData().getPlayerUUID();
             var threshold = walletDatabaseClient.findThresholdByPlayerUuidOrFail(playerUuid);
             BigDecimal expectedThresholdAmount = winAmountParam.subtract(betAmountParam);
 
@@ -292,16 +292,16 @@ class WinParametrizedTest extends BaseParameterizedTest {
         });
 
         step("Redis(Wallet): Получение и проверка полных данных кошелька", () -> {
-            var walletUuid = testData.registeredPlayer.getWalletData().getWalletUUID();
-            int sequence = (int) testData.winEvent.getSequence();
-            var transactionUuid = testData.winEvent.getPayload().getUuid();
+            var walletUuid = ctx.registeredPlayer.getWalletData().getWalletUUID();
+            int sequence = (int) ctx.winEvent.getSequence();
+            var transactionUuid = ctx.winEvent.getPayload().getUuid();
 
             var aggregate = redisClient.getWalletDataWithSeqCheck(walletUuid, sequence);
 
             assertAll("Проверка данных в Redis",
                     () -> assertEquals(sequence, aggregate.getLastSeqNumber(), "redis.wallet.last_seq_number"),
-                    () -> assertEquals(0, testData.expectedBalanceAfterWin.compareTo(aggregate.getBalance()), "redis.wallet.balance"),
-                    () -> assertEquals(0, testData.expectedBalanceAfterWin.compareTo(aggregate.getAvailableWithdrawalBalance()), "redis.wallet.availableWithdrawalBalance"),
+                    () -> assertEquals(0, ctx.expectedBalanceAfterWin.compareTo(aggregate.getBalance()), "redis.wallet.balance"),
+                    () -> assertEquals(0, ctx.expectedBalanceAfterWin.compareTo(aggregate.getAvailableWithdrawalBalance()), "redis.wallet.availableWithdrawalBalance"),
                     () -> assertTrue(aggregate.getGambling().containsKey(transactionUuid), "redis.wallet.gambling.containsKey"),
                     () -> assertEquals(0, winAmountParam.compareTo(aggregate.getGambling().get(transactionUuid).getAmount()), "redis.wallet.gambling.amount"),
                     () -> assertNotNull(aggregate.getGambling().get(transactionUuid).getCreatedAt(), "redis.wallet.gambling.createdAt")
@@ -310,9 +310,9 @@ class WinParametrizedTest extends BaseParameterizedTest {
 
         step("Kafka: Проверка поступления сообщения won_from_gamble в топик wallet.v8.projectionSource", () -> {
             var kafkaMessage = walletProjectionKafkaClient.expectWalletProjectionMessageBySeqNum(
-                    testData.winEvent.getSequence());
+                    ctx.winEvent.getSequence());
 
-            assertTrue(utils.areEquivalent(kafkaMessage, testData.winEvent), "wallet.v8.projectionSource");
+            assertTrue(utils.areEquivalent(kafkaMessage, ctx.winEvent), "wallet.v8.projectionSource");
         });
     }
 }

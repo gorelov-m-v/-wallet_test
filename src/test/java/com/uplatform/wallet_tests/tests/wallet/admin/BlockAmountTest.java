@@ -39,43 +39,43 @@ class BlockAmountTest extends BaseTest {
         final BigDecimal adjustmentAmount = new BigDecimal("150.00");
         final BigDecimal blockAmount = new BigDecimal("50.00");
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             CreateBlockAmountRequest blockAmountRequest;
             ResponseEntity<CreateBlockAmountResponse> blockAmountResponse;
             NatsMessage<NatsBlockAmountEventPayload> blockAmountEvent;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
         
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
 
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("CAP API: Создание блокировки средств", () -> {
-            testData.blockAmountRequest = CreateBlockAmountRequest.builder()
+            ctx.blockAmountRequest = CreateBlockAmountRequest.builder()
                     .reason(get(NAME))
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .amount(blockAmount.toString())
                     .build();
 
-            testData.blockAmountResponse = capAdminClient.createBlockAmount(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+            ctx.blockAmountResponse = capAdminClient.createBlockAmount(
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId,
-                    testData.blockAmountRequest
+                    ctx.blockAmountRequest
             );
 
-            var responseBody = testData.blockAmountResponse.getBody();
-            var player = testData.registeredPlayer.getWalletData();
+            var responseBody = ctx.blockAmountResponse.getBody();
+            var player = ctx.registeredPlayer.getWalletData();
             assertAll("Проверка данных в ответе на создание блокировки средств",
-                    () -> assertEquals(HttpStatus.OK, testData.blockAmountResponse.getStatusCode(), "cap_api.block_amount.status_code"),
+                    () -> assertEquals(HttpStatus.OK, ctx.blockAmountResponse.getStatusCode(), "cap_api.block_amount.status_code"),
                     () -> assertNotNull(responseBody.getTransactionId(), "cap_api.block_amount.transaction_id"),
                     () -> assertEquals(player.getCurrency(), responseBody.getCurrency(), "cap_api.block_amount.currency"),
                     () -> assertEquals(0, blockAmount.compareTo(responseBody.getAmount()), "cap_api.block_amount.amount"),
-                    () -> assertEquals(testData.blockAmountRequest.getReason(), responseBody.getReason(), "cap_api.block_amount.reason"),
+                    () -> assertEquals(ctx.blockAmountRequest.getReason(), responseBody.getReason(), "cap_api.block_amount.reason"),
                     () -> assertNotNull(responseBody.getUserId(), "cap_api.block_amount.user_id"),
                     () -> assertNotNull(responseBody.getUserName(), "cap_api.block_amount.user_name"),
                     () -> assertTrue(responseBody.getCreatedAt() > 0, "cap_api.block_amount.created_at")
@@ -84,24 +84,24 @@ class BlockAmountTest extends BaseTest {
 
         step("NATS: Проверка поступления события block_amount_started", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsBlockAmountEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.BLOCK_AMOUNT_STARTED.getHeaderValue().equals(typeHeader);
 
-            testData.blockAmountEvent = natsClient.findMessageAsync(
+            ctx.blockAmountEvent = natsClient.findMessageAsync(
                     subject,
                     NatsBlockAmountEventPayload.class,
                     filter).get();
 
-            var actualPayload = testData.blockAmountEvent.getPayload();
-            var blockAmountResponse = testData.blockAmountResponse.getBody();
+            var actualPayload = ctx.blockAmountEvent.getPayload();
+            var blockAmountResponse = ctx.blockAmountResponse.getBody();
             assertAll("Проверка основных полей NATS payload",
                     () -> assertEquals(blockAmountResponse.getTransactionId(), actualPayload.getUuid(), "nats.payload.uuid"),
                     () -> assertEquals(NatsBlockAmountStatus.CREATED, actualPayload.getStatus(), "nats.payload.status"),
                     () -> assertEquals(0, blockAmount.negate().compareTo(actualPayload.getAmount()), "nats.payload.amount"),
-                    () -> assertEquals(testData.blockAmountRequest.getReason(), actualPayload.getReason(), "nats.payload.reason"),
+                    () -> assertEquals(ctx.blockAmountRequest.getReason(), actualPayload.getReason(), "nats.payload.reason"),
                     () -> assertEquals(NatsBlockAmountType.MANUAL , actualPayload.getType(), "nats.payload.type"),
                     () -> assertEquals(blockAmountResponse.getUserId(), actualPayload.getUserUuid(), "nats.payload.user_uuid"),
                     () -> assertEquals(blockAmountResponse.getUserName(), actualPayload.getUserName(), "nats.payload.user_name"),
@@ -112,22 +112,22 @@ class BlockAmountTest extends BaseTest {
         
         step("Kafka: Проверка поступления сообщения block_amount_started в топик wallet.v8.projectionSource", () -> {
             var kafkaMessage = walletProjectionKafkaClient.expectWalletProjectionMessageBySeqNum(
-                    testData.blockAmountEvent.getSequence());
+                    ctx.blockAmountEvent.getSequence());
         
-            assertTrue(utils.areEquivalent(kafkaMessage, testData.blockAmountEvent), "kafka.payload");
+            assertTrue(utils.areEquivalent(kafkaMessage, ctx.blockAmountEvent), "kafka.payload");
         });
 
         step("Redis(Wallet): Получение и проверка полных данных кошелька", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.blockAmountEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.blockAmountEvent.getSequence());
 
             var blockedAmountInfo = aggregate.getBlockedAmounts().get(0);
-            var responseBody = testData.blockAmountResponse.getBody();
+            var responseBody = ctx.blockAmountResponse.getBody();
             var expectedBalance = adjustmentAmount.subtract(blockAmount);
 
             assertAll("Проверка агрегата после BlockAmount",
-                    () -> assertEquals((int) testData.blockAmountEvent.getSequence(), aggregate.getLastSeqNumber(), "redis.aggregate.last_seq_number"),
+                    () -> assertEquals((int) ctx.blockAmountEvent.getSequence(), aggregate.getLastSeqNumber(), "redis.aggregate.last_seq_number"),
                     () -> assertEquals(0, expectedBalance.compareTo(aggregate.getBalance()), "redis.aggregate.balance"),
                     () -> assertEquals(0, expectedBalance.compareTo(aggregate.getAvailableWithdrawalBalance()), "redis.aggregate.available_withdrawal_balance"),
                     () -> assertEquals(0, adjustmentAmount.compareTo(aggregate.getBalanceBefore()), "redis.aggregate.balance_before"),
@@ -137,7 +137,7 @@ class BlockAmountTest extends BaseTest {
                     () -> assertEquals(responseBody.getUserName(), blockedAmountInfo.getUserName(), "redis.aggregate.blocked_amount.user_name"),
                     () -> assertEquals(0, blockAmount.negate().compareTo(blockedAmountInfo.getAmount()), "redis.aggregate.blocked_amount.amount"),
                     () -> assertEquals(0, blockAmount.compareTo(blockedAmountInfo.getDeltaAvailableWithdrawalBalance()), "redis.aggregate.blocked_amount.delta_available_withdrawal_balance"),
-                    () -> assertEquals(testData.blockAmountRequest.getReason(), blockedAmountInfo.getReason(), "redis.aggregate.blocked_amount.reason"),
+                    () -> assertEquals(ctx.blockAmountRequest.getReason(), blockedAmountInfo.getReason(), "redis.aggregate.blocked_amount.reason"),
                     () -> assertEquals(NatsBlockAmountType.MANUAL.getValue(), blockedAmountInfo.getType(), "redis.aggregate.blocked_amount.type"),
                     () -> assertEquals(NatsBlockAmountStatus.CREATED.getValue(), blockedAmountInfo.getStatus(), "redis.aggregate.blocked_amount.status"),
                     () -> assertNotNull(blockedAmountInfo.getCreatedAt(), "redis.aggregate.blocked_amount.created_at"),
@@ -149,18 +149,18 @@ class BlockAmountTest extends BaseTest {
             var response = capAdminClient.getBlockAmountList(
                     utils.getAuthorizationHeader(),
                     platformNodeId,
-                    testData.registeredPlayer.getWalletData().getPlayerUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID());
 
-            var expectedTxId = testData.blockAmountResponse.getBody().getTransactionId();
+            var expectedTxId = ctx.blockAmountResponse.getBody().getTransactionId();
             var createdItem = response.getBody().getItems().get(0);
-            var player = testData.registeredPlayer.getWalletData();
+            var player = ctx.registeredPlayer.getWalletData();
 
             assertAll("Проверка данных созданной блокировки",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "cap_api.status_code"),
                     () -> assertEquals(expectedTxId, createdItem.getTransactionId(), "cap_api.block_amount_list.transaction_id"),
-                    () -> assertEquals(testData.blockAmountRequest.getCurrency(), createdItem.getCurrency(), "cap_api.block_amount_list.currency"),
+                    () -> assertEquals(ctx.blockAmountRequest.getCurrency(), createdItem.getCurrency(), "cap_api.block_amount_list.currency"),
                     () -> assertEquals(0, blockAmount.negate().compareTo(createdItem.getAmount()), "cap_api.block_amount_list.amount"),
-                    () -> assertEquals(testData.blockAmountRequest.getReason(), createdItem.getReason(), "cap_api.block_amount_list.reason"),
+                    () -> assertEquals(ctx.blockAmountRequest.getReason(), createdItem.getReason(), "cap_api.block_amount_list.reason"),
                     () -> assertNotNull(createdItem.getUserId(), "cap_api.block_amount_list.user_id"),
                     () -> assertNotNull(createdItem.getUserName(), "cap_api.block_amount_list.user_name"),
                     () -> assertNotNull(createdItem.getCreatedAt(), "cap_api.block_amount_list.created_at_is_null"),

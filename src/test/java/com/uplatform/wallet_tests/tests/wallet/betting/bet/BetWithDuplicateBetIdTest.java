@@ -57,21 +57,21 @@ class BetWithDuplicateBetIdTest extends BaseTest {
         final BigDecimal betAmount = generateBigDecimalAmount(adjustmentAmount);
         final Long sharedBetId = System.currentTimeMillis();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Manager API: Совершение первой (успешной) ставки на спорт с уникальным betId", () -> {
             var firstBetInputData = MakePaymentData.builder()
                     .type(NatsBettingTransactionOperation.BET)
-                    .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .summ(betAmount.toPlainString())
                     .couponType(NatsBettingCouponType.SINGLE)
                     .betId(sharedBetId)
@@ -92,8 +92,8 @@ class BetWithDuplicateBetIdTest extends BaseTest {
         step("Manager API: Попытка совершения второй ставки с тем же betId", () -> {
             var secondBetInputData = MakePaymentData.builder()
                     .type(NatsBettingTransactionOperation.BET)
-                    .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .summ(betAmount.toPlainString())
                     .couponType(NatsBettingCouponType.SINGLE)
                     .betId(sharedBetId)

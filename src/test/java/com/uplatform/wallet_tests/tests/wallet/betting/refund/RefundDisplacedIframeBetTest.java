@@ -69,7 +69,7 @@ class RefundDisplacedIframeBetTest extends BaseTest {
         final int maxIframeCountInRedis = configProvider.getEnvironmentConfig().getRedis().getAggregate().getMaxIframeCount();
         final int currentTransactionCountToMake = maxIframeCountInRedis + 1;
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             List<MakePaymentRequest> madeBetsRequests = new ArrayList<>();
             Long lastMadeBetId;
@@ -77,29 +77,29 @@ class RefundDisplacedIframeBetTest extends BaseTest {
             NatsMessage<NatsBettingEventPayload> lastBetNatsEvent;
             BigDecimal currentCalculatedBalance;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            testData.currentCalculatedBalance = testData.registeredPlayer.getWalletData().getBalance();
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            ctx.currentCalculatedBalance = ctx.registeredPlayer.getWalletData().getBalance();
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Manager API: Совершение " + currentTransactionCountToMake + " iFrame ставок", () -> {
             for (int i = 0; i < currentTransactionCountToMake; i++) {
                 var betInputData = MakePaymentData.builder()
                         .type(NatsBettingTransactionOperation.BET)
-                        .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
+                        .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
                         .summ(singleBetAmount.toPlainString())
                         .couponType(NatsBettingCouponType.SINGLE)
-                        .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                        .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                         .build();
                 var betRequestBody = MakePaymentRequestGenerator.generateRequest(betInputData);
 
-                testData.madeBetsRequests.add(betRequestBody);
+                ctx.madeBetsRequests.add(betRequestBody);
 
                 if (i == currentTransactionCountToMake - 1) {
-                    testData.lastMadeBetId = betRequestBody.getBetId();
+                    ctx.lastMadeBetId = betRequestBody.getBetId();
                 }
 
                 var currentBetNumber = i + 1;
@@ -113,34 +113,34 @@ class RefundDisplacedIframeBetTest extends BaseTest {
                             () -> assertTrue(response.getBody().isSuccess(), "manager_api.body.success"),
                             () -> assertEquals(SUCCESS.getCode(), response.getBody().getErrorCode(), "manager_api.body.errorCode")
                     );
-                    testData.currentCalculatedBalance = testData.currentCalculatedBalance.subtract(singleBetAmount);
+                    ctx.currentCalculatedBalance = ctx.currentCalculatedBalance.subtract(singleBetAmount);
                 });
             }
-            assertEquals(currentTransactionCountToMake, testData.madeBetsRequests.size(), "bet.list.size");
+            assertEquals(currentTransactionCountToMake, ctx.madeBetsRequests.size(), "bet.list.size");
         });
 
         step("NATS: Ожидание NATS-события betted_from_iframe для последней ставки (для sequence)", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsBettingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.BETTED_FROM_IFRAME.getHeaderValue().equals(typeHeader) &&
-                            Objects.equals(testData.lastMadeBetId, payload.getBetId());
+                            Objects.equals(ctx.lastMadeBetId, payload.getBetId());
 
-            testData.lastBetNatsEvent = natsClient.findMessageAsync(
+            ctx.lastBetNatsEvent = natsClient.findMessageAsync(
                     subject,
                     NatsBettingEventPayload.class,
                     filter).get();
-            assertNotNull(testData.lastBetNatsEvent, "nats.betted_from_iframe");
+            assertNotNull(ctx.lastBetNatsEvent, "nats.betted_from_iframe");
         });
 
         step("Определение вытесненных iFrame ставок из Redis", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.lastBetNatsEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.lastBetNatsEvent.getSequence());
             var iFrameRecordsInRedis = aggregate.getIFrameRecords();
-            var allMadeBetIds = testData.madeBetsRequests.stream()
+            var allMadeBetIds = ctx.madeBetsRequests.stream()
                     .map(MakePaymentRequest::getBetId)
                     .collect(Collectors.toSet());
             var betIdsCurrentlyInRedis = iFrameRecordsInRedis.stream()
@@ -151,14 +151,14 @@ class RefundDisplacedIframeBetTest extends BaseTest {
             displacedBetIds.removeAll(betIdsCurrentlyInRedis);
             var betIdToRefund = displacedBetIds.iterator().next();
 
-            testData.originalBetRequestToRefund = testData.madeBetsRequests.stream()
+            ctx.originalBetRequestToRefund = ctx.madeBetsRequests.stream()
                     .filter(betReq -> Objects.equals(betReq.getBetId(), betIdToRefund))
                     .findFirst()
                     .orElseThrow(() -> new AssertionError("test.displaced_request.not_found"));
         });
 
         step("Manager API: Рефанд вытесненной iFrame ставки (модификацией исходного запроса) и проверка ответа", () -> {
-            var requestForRefund = testData.originalBetRequestToRefund;
+            var requestForRefund = ctx.originalBetRequestToRefund;
             requestForRefund.setType(NatsBettingTransactionOperation.REFUND);
             requestForRefund.setTotalCoef(refundCoeff.toString());
             requestForRefund.setTime(System.currentTimeMillis() / 1000L);

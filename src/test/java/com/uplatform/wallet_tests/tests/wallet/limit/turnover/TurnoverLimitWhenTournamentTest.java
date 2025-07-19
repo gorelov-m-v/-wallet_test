@@ -85,7 +85,7 @@ class TurnoverLimitWhenTournamentTest extends BaseParameterizedTest {
     ) {
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             TournamentRequestBody tournamentRequestBody;
@@ -96,54 +96,54 @@ class TurnoverLimitWhenTournamentTest extends BaseParameterizedTest {
             BigDecimal expectedSpentAmountAfterTournament;
             BigDecimal expectedPlayerBalanceAfterTournament;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
-        testData.limitAmount = limitAmountBase;
-        testData.expectedSpentAmountAfterTournament = BigDecimal.ZERO;
-        testData.expectedRestAmountAfterTournament = testData.limitAmount;
-        testData.expectedPlayerBalanceAfterTournament = initialAdjustmentAmount.add(tournamentAmountParam);
+        ctx.limitAmount = limitAmountBase;
+        ctx.expectedSpentAmountAfterTournament = BigDecimal.ZERO;
+        ctx.expectedRestAmountAfterTournament = ctx.limitAmount;
+        ctx.expectedPlayerBalanceAfterTournament = initialAdjustmentAmount.add(tournamentAmountParam);
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("Public API: Установка лимита на оборот средств", () -> {
             var request = SetTurnoverLimitRequest.builder()
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .type(NatsLimitIntervalType.DAILY)
-                    .amount(testData.limitAmount.toString())
+                    .amount(ctx.limitAmount.toString())
                     .startedAt((int) (System.currentTimeMillis() / 1000))
                     .build();
 
             var response = publicClient.setTurnoverLimit(
-                    testData.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
+                    ctx.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
                     request);
 
             assertEquals(HttpStatus.CREATED, response.getStatusCode(), "fapi.set_turnover_limit.status_code");
 
             step("Sub-step NATS: получение события limit_changed_v2", () -> {
                 var subject = natsClient.buildWalletSubject(
-                        testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                        testData.registeredPlayer.getWalletData().getWalletUUID());
+                        ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                        ctx.registeredPlayer.getWalletData().getWalletUUID());
 
                 BiPredicate<NatsLimitChangedV2Payload, String> filter = (payload, typeHeader) ->
                         NatsEventType.LIMIT_CHANGED_V2.getHeaderValue().equals(typeHeader) &&
                                 payload.getLimits().stream().anyMatch(l -> NatsLimitType.TURNOVER_FUNDS.getValue().equals(l.getLimitType()));
 
-                testData.limitCreateEvent = natsClient.findMessageAsync(subject, NatsLimitChangedV2Payload.class, filter).get();
-                assertNotNull(testData.limitCreateEvent, "nats.limit_changed_v2_event");
+                ctx.limitCreateEvent = natsClient.findMessageAsync(subject, NatsLimitChangedV2Payload.class, filter).get();
+                assertNotNull(ctx.limitCreateEvent, "nats.limit_changed_v2_event");
             });
         });
 
         step("Manager API: Начисление турнирного выигрыша", () -> {
-            testData.tournamentRequestBody = TournamentRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+            ctx.tournamentRequestBody = TournamentRequestBody.builder()
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(tournamentAmountParam)
                     .transactionId(UUID.randomUUID().toString())
                     .roundId(UUID.randomUUID().toString())
@@ -151,39 +151,39 @@ class TurnoverLimitWhenTournamentTest extends BaseParameterizedTest {
 
             var response = managerClient.tournament(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.TOURNAMENT, testData.tournamentRequestBody),
-                    testData.tournamentRequestBody);
+                    utils.createSignature(ApiEndpoints.TOURNAMENT, ctx.tournamentRequestBody),
+                    ctx.tournamentRequestBody);
 
             assertAll("manager_api.response_validation",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code"),
-                    () -> assertEquals(testData.tournamentRequestBody.getTransactionId(), response.getBody().getTransactionId(), "manager_api.body.transactionId"),
-                    () -> assertEquals(0, testData.expectedPlayerBalanceAfterTournament.compareTo(response.getBody().getBalance()), "manager_api.body.balance")
+                    () -> assertEquals(ctx.tournamentRequestBody.getTransactionId(), response.getBody().getTransactionId(), "manager_api.body.transactionId"),
+                    () -> assertEquals(0, ctx.expectedPlayerBalanceAfterTournament.compareTo(response.getBody().getBalance()), "manager_api.body.balance")
             );
 
             step("Sub-step NATS: Проверка поступления события tournament_won_from_gamble", () -> {
                 var subject = natsClient.buildWalletSubject(
-                        testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                        testData.registeredPlayer.getWalletData().getWalletUUID());
+                        ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                        ctx.registeredPlayer.getWalletData().getWalletUUID());
 
                 BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                         NatsEventType.TOURNAMENT_WON_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                                testData.tournamentRequestBody.getTransactionId().equals(payload.getUuid());
+                                ctx.tournamentRequestBody.getTransactionId().equals(payload.getUuid());
 
-                testData.tournamentEvent = natsClient.findMessageAsync(
+                ctx.tournamentEvent = natsClient.findMessageAsync(
                         subject,
                         NatsGamblingEventPayload.class,
                         filter).get();
-                assertNotNull(testData.tournamentEvent, "nats.tournament_won_from_gamble");
+                assertNotNull(ctx.tournamentEvent, "nats.tournament_won_from_gamble");
             });
         });
 
         step("Redis(Wallet): Проверка изменений лимита и баланса в агрегате", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.tournamentEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.tournamentEvent.getSequence());
 
             assertAll("redis.wallet.limit_data_validation",
-                    () -> assertEquals((int) testData.tournamentEvent.getSequence(), aggregate.getLastSeqNumber(), "redis.wallet.last_seq_number"),
+                    () -> assertEquals((int) ctx.tournamentEvent.getSequence(), aggregate.getLastSeqNumber(), "redis.wallet.last_seq_number"),
                     () -> assertFalse(aggregate.getLimits().isEmpty(), "redis.wallet.limits"),
                     () -> {
                         var turnoverLimitOpt = aggregate.getLimits().stream()
@@ -193,9 +193,9 @@ class TurnoverLimitWhenTournamentTest extends BaseParameterizedTest {
                         assertTrue(turnoverLimitOpt.isPresent(), "redis.wallet.turnover_limit");
                         var turnoverLimit = turnoverLimitOpt.get();
 
-                        assertEquals(0, testData.expectedRestAmountAfterTournament.compareTo(turnoverLimit.getRest()), "redis.wallet.limit.rest");
-                        assertEquals(0, testData.expectedSpentAmountAfterTournament.compareTo(turnoverLimit.getSpent()), "redis.wallet.limit.spent");
-                        assertEquals(0, testData.limitAmount.compareTo(turnoverLimit.getAmount()), "redis.wallet.limit.amount");
+                        assertEquals(0, ctx.expectedRestAmountAfterTournament.compareTo(turnoverLimit.getRest()), "redis.wallet.limit.rest");
+                        assertEquals(0, ctx.expectedSpentAmountAfterTournament.compareTo(turnoverLimit.getSpent()), "redis.wallet.limit.spent");
+                        assertEquals(0, ctx.limitAmount.compareTo(turnoverLimit.getAmount()), "redis.wallet.limit.amount");
                     }
             );
         });

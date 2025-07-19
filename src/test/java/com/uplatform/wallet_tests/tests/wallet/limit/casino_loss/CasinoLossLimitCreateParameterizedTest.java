@@ -85,103 +85,103 @@ public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTes
     void createAndVerifyCasinoLossLimit(NatsLimitIntervalType periodType) {
         final String platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             SetCasinoLossLimitRequest setLimitRequest;
             LimitMessage kafkaLimitMessage;
             NatsMessage<NatsLimitChangedV2Payload> natsLimitChangeEvent;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(BigDecimal.ZERO);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(BigDecimal.ZERO);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Public API (FAPI): Установка лимита на проигрыш в казино", () -> {
-            testData.setLimitRequest = SetCasinoLossLimitRequest.builder()
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+            ctx.setLimitRequest = SetCasinoLossLimitRequest.builder()
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .type(periodType)
                     .amount(limitAmount.toString())
                     .startedAt((int) (System.currentTimeMillis() / 1000))
                     .build();
 
             var response = publicClient.setCasinoLossLimit(
-                    testData.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
-                    testData.setLimitRequest);
+                    ctx.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
+                    ctx.setLimitRequest);
 
             assertEquals(HttpStatus.CREATED, response.getStatusCode(), "fapi.set_casino_loss_limit.status_code");
         });
 
         step("Kafka: Проверка получения события limits.v2", () -> {
             var expectedAmount = limitAmount.stripTrailingZeros().toPlainString();
-            testData.kafkaLimitMessage = limitKafkaClient.expectLimitMessage(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+            ctx.kafkaLimitMessage = limitKafkaClient.expectLimitMessage(
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     NatsLimitType.CASINO_LOSS.getValue(),
-                    testData.registeredPlayer.getWalletData().getCurrency(),
+                    ctx.registeredPlayer.getWalletData().getCurrency(),
                     expectedAmount
             );
 
-            assertNotNull(testData.kafkaLimitMessage, "kafka.limits_v2_event.message_not_null");
+            assertNotNull(ctx.kafkaLimitMessage, "kafka.limits_v2_event.message_not_null");
             assertAll("kafka.limits_v2_event.content_validation",
-                    () -> assertEquals(NatsLimitType.CASINO_LOSS.getValue(), testData.kafkaLimitMessage.getLimitType(), "kafka.limits_v2_event.limitType"),
-                    () -> assertEquals(periodType.getValue(), testData.kafkaLimitMessage.getIntervalType(), "kafka.limits_v2_event.intervalType"),
-                    () -> assertEquals(0, limitAmount.compareTo(new BigDecimal(testData.kafkaLimitMessage.getAmount())), "kafka.limits_v2_event.amount"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), testData.kafkaLimitMessage.getCurrencyCode(), "kafka.limits_v2_event.currencyCode"),
-                    () -> assertNotNull(testData.kafkaLimitMessage.getId(), "kafka.limits_v2_event.id"),
-                    () -> assertNotNull(testData.kafkaLimitMessage.getStartedAt(), "kafka.limits_v2_event.startedAt"),
-                    () -> assertNotNull(testData.kafkaLimitMessage.getExpiresAt(), "kafka.limits_v2_event.expiresAt")
+                    () -> assertEquals(NatsLimitType.CASINO_LOSS.getValue(), ctx.kafkaLimitMessage.getLimitType(), "kafka.limits_v2_event.limitType"),
+                    () -> assertEquals(periodType.getValue(), ctx.kafkaLimitMessage.getIntervalType(), "kafka.limits_v2_event.intervalType"),
+                    () -> assertEquals(0, limitAmount.compareTo(new BigDecimal(ctx.kafkaLimitMessage.getAmount())), "kafka.limits_v2_event.amount"),
+                    () -> assertEquals(ctx.registeredPlayer.getWalletData().getCurrency(), ctx.kafkaLimitMessage.getCurrencyCode(), "kafka.limits_v2_event.currencyCode"),
+                    () -> assertNotNull(ctx.kafkaLimitMessage.getId(), "kafka.limits_v2_event.id"),
+                    () -> assertNotNull(ctx.kafkaLimitMessage.getStartedAt(), "kafka.limits_v2_event.startedAt"),
+                    () -> assertNotNull(ctx.kafkaLimitMessage.getExpiresAt(), "kafka.limits_v2_event.expiresAt")
             );
         });
 
         step("NATS: Проверка получения события limit_changed_v2", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsLimitChangedV2Payload, String> filter = (payload, typeHeader) ->
                     NatsEventType.LIMIT_CHANGED_V2.getHeaderValue().equals(typeHeader) &&
                             payload.getLimits() != null && !payload.getLimits().isEmpty() &&
-                            testData.kafkaLimitMessage.getId().equals(payload.getLimits().get(0).getExternalId());
+                            ctx.kafkaLimitMessage.getId().equals(payload.getLimits().get(0).getExternalId());
 
-            testData.natsLimitChangeEvent = natsClient.findMessageAsync(subject, NatsLimitChangedV2Payload.class, filter).get();
-            assertNotNull(testData.natsLimitChangeEvent, "nats.limit_changed_v2_event.message_not_null");
-            assertNotNull(testData.natsLimitChangeEvent.getPayload(), "nats.limit_changed_v2_event.payload_not_null");
-            assertNotNull(testData.natsLimitChangeEvent.getPayload().getLimits(), "nats.limit_changed_v2_event.payload.limits_list_not_null");
-            assertFalse(testData.natsLimitChangeEvent.getPayload().getLimits().isEmpty(), "nats.limit_changed_v2_event.payload.limits_list_not_empty");
+            ctx.natsLimitChangeEvent = natsClient.findMessageAsync(subject, NatsLimitChangedV2Payload.class, filter).get();
+            assertNotNull(ctx.natsLimitChangeEvent, "nats.limit_changed_v2_event.message_not_null");
+            assertNotNull(ctx.natsLimitChangeEvent.getPayload(), "nats.limit_changed_v2_event.payload_not_null");
+            assertNotNull(ctx.natsLimitChangeEvent.getPayload().getLimits(), "nats.limit_changed_v2_event.payload.limits_list_not_null");
+            assertFalse(ctx.natsLimitChangeEvent.getPayload().getLimits().isEmpty(), "nats.limit_changed_v2_event.payload.limits_list_not_empty");
 
-            var natsLimit = testData.natsLimitChangeEvent.getPayload().getLimits().get(0);
+            var natsLimit = ctx.natsLimitChangeEvent.getPayload().getLimits().get(0);
             assertAll("nats.limit_changed_v2_event.content_validation",
-                    () -> assertEquals(NatsLimitEventType.CREATED.getValue(), testData.natsLimitChangeEvent.getPayload().getEventType(), "nats.limit_changed_v2_event.payload.eventType"),
-                    () -> assertEquals(testData.kafkaLimitMessage.getId(), natsLimit.getExternalId(), "nats.limit_changed_v2_event.limit.externalId"),
+                    () -> assertEquals(NatsLimitEventType.CREATED.getValue(), ctx.natsLimitChangeEvent.getPayload().getEventType(), "nats.limit_changed_v2_event.payload.eventType"),
+                    () -> assertEquals(ctx.kafkaLimitMessage.getId(), natsLimit.getExternalId(), "nats.limit_changed_v2_event.limit.externalId"),
                     () -> assertEquals(NatsLimitType.CASINO_LOSS.getValue(), natsLimit.getLimitType(), "nats.limit_changed_v2_event.limit.limitType"),
                     () -> assertEquals(periodType.getValue(), natsLimit.getIntervalType(), "nats.limit_changed_v2_event.limit.intervalType"),
                     () -> assertEquals(0, limitAmount.compareTo(natsLimit.getAmount()), "nats.limit_changed_v2_event.limit.amount"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), natsLimit.getCurrencyCode(), "nats.limit_changed_v2_event.limit.currencyCode"),
+                    () -> assertEquals(ctx.registeredPlayer.getWalletData().getCurrency(), natsLimit.getCurrencyCode(), "nats.limit_changed_v2_event.limit.currencyCode"),
                     () -> assertNotNull(natsLimit.getStartedAt(), "nats.limit_changed_v2_event.limit.startedAt"),
-                    () -> assertEquals(testData.kafkaLimitMessage.getExpiresAt(), natsLimit.getExpiresAt(), "nats.limit_changed_v2_event.limit.expiresAt"),
+                    () -> assertEquals(ctx.kafkaLimitMessage.getExpiresAt(), natsLimit.getExpiresAt(), "nats.limit_changed_v2_event.limit.expiresAt"),
                     () -> assertTrue(natsLimit.getStatus(), "nats.limit_changed_v2_event.limit.status_is_true")
             );
         });
 
         step("Kafka Projection: Сравнение данных из NATS и Kafka Wallet Projection", () -> {
             var projectionMsg = walletProjectionKafkaClient.expectWalletProjectionMessageBySeqNum(
-                    testData.natsLimitChangeEvent.getSequence());
+                    ctx.natsLimitChangeEvent.getSequence());
 
             assertNotNull(projectionMsg, "kafka.wallet_projection.message_not_null");
-            assertTrue(utils.areEquivalent(projectionMsg, testData.natsLimitChangeEvent), "kafka.wallet_projection.equivalent_to_nats");
+            assertTrue(utils.areEquivalent(projectionMsg, ctx.natsLimitChangeEvent), "kafka.wallet_projection.equivalent_to_nats");
         });
 
         step("Redis (Wallet Aggregate): Проверка данных лимита в агрегате кошелька", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.natsLimitChangeEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.natsLimitChangeEvent.getSequence());
 
             assertFalse(aggregate.getLimits().isEmpty(), "redis.wallet_aggregate.limits_list_not_empty");
 
             var redisLimitOpt = aggregate.getLimits().stream()
                     .filter(l ->
-                            testData.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId().equals(l.getExternalID()) &&
+                            ctx.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId().equals(l.getExternalID()) &&
                                     NatsLimitType.CASINO_LOSS.getValue().equals(l.getLimitType()))
                     .findFirst();
 
@@ -189,13 +189,13 @@ public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTes
             var redisLimit = redisLimitOpt.get();
 
             assertAll("redis.wallet_aggregate.limit_content_validation",
-                    () -> assertEquals(testData.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId(), redisLimit.getExternalID(), "redis.wallet_aggregate.limit.externalId"),
+                    () -> assertEquals(ctx.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId(), redisLimit.getExternalID(), "redis.wallet_aggregate.limit.externalId"),
                     () -> assertEquals(NatsLimitType.CASINO_LOSS.getValue(), redisLimit.getLimitType(), "redis.wallet_aggregate.limit.limitType"),
                     () -> assertEquals(periodType.getValue(), redisLimit.getIntervalType(), "redis.wallet_aggregate.limit.intervalType"),
                     () -> assertEquals(0, limitAmount.compareTo(redisLimit.getAmount()), "redis.wallet_aggregate.limit.amount"),
                     () -> assertEquals(0, BigDecimal.ZERO.compareTo(redisLimit.getSpent()), "redis.wallet_aggregate.limit.spent_is_zero"),
                     () -> assertEquals(0, limitAmount.compareTo(redisLimit.getRest()), "redis.wallet_aggregate.limit.rest_equals_amount"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), redisLimit.getCurrencyCode(), "redis.wallet_aggregate.limit.currencyCode"),
+                    () -> assertEquals(ctx.registeredPlayer.getWalletData().getCurrency(), redisLimit.getCurrencyCode(), "redis.wallet_aggregate.limit.currencyCode"),
                     () -> assertNotNull(redisLimit.getStartedAt(), "redis.wallet_aggregate.limit.startedAt"),
                     () -> assertNotNull(redisLimit.getExpiresAt(), "redis.wallet_aggregate.limit.expiresAt"),
                     () -> assertTrue(redisLimit.isStatus(), "redis.wallet_aggregate.limit.status_is_true")
@@ -204,7 +204,7 @@ public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTes
 
         step("CAP: Получение и валидация лимитов игрока", () -> {
             var response = capAdminClient.getPlayerLimits(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId
             );
@@ -224,7 +224,7 @@ public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTes
 
             assertAll("cap.get_player_limits.limit_content_validation",
                     () -> assertTrue(capLimit.isStatus(), "cap.get_player_limits.limit.status_is_true"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), capLimit.getCurrency(), "cap.get_player_limits.limit.currency"),
+                    () -> assertEquals(ctx.registeredPlayer.getWalletData().getCurrency(), capLimit.getCurrency(), "cap.get_player_limits.limit.currency"),
                     () -> assertEquals(0, limitAmount.compareTo(capLimit.getAmount()), "cap.get_player_limits.limit.amount"),
                     () -> {
                         assertNotNull(capLimit.getRest(), "cap.get_player_limits.limit.rest_is_not_null");
@@ -244,7 +244,7 @@ public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTes
 
         step("Public API: Получение и валидация списка лимитов игрока", () -> {
             var response = publicClient.getCasinoLossLimits(
-                    testData.registeredPlayer.getAuthorizationResponse().getBody().getToken()
+                    ctx.registeredPlayer.getAuthorizationResponse().getBody().getToken()
             );
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "fapi.get_casino_loss_limits.status_code");
@@ -253,7 +253,7 @@ public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTes
 
             var fapiLimitOpt = response.getBody().stream()
                     .filter(l -> {
-                        boolean idMatch = testData.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId().equals(l.getId());
+                        boolean idMatch = ctx.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId().equals(l.getId());
                         boolean typeMatch = periodType.getValue().equalsIgnoreCase(l.getType());
                         return idMatch && typeMatch;
                     })
@@ -263,9 +263,9 @@ public class CasinoLossLimitCreateParameterizedTest extends BaseParameterizedTes
             var fapiLimit = fapiLimitOpt.get();
 
             assertAll("fapi.get_casino_loss_limits.limit_content_validation",
-                    () -> assertEquals(testData.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId(), fapiLimit.getId(), "fapi.get_casino_loss_limits.limit.id"),
+                    () -> assertEquals(ctx.natsLimitChangeEvent.getPayload().getLimits().get(0).getExternalId(), fapiLimit.getId(), "fapi.get_casino_loss_limits.limit.id"),
                     () -> assertEquals(periodType.getValue(), fapiLimit.getType(), "fapi.get_casino_loss_limits.limit.type_period"),
-                    () -> assertEquals(testData.registeredPlayer.getWalletData().getCurrency(), fapiLimit.getCurrency(), "fapi.get_casino_loss_limits.limit.currency"),
+                    () -> assertEquals(ctx.registeredPlayer.getWalletData().getCurrency(), fapiLimit.getCurrency(), "fapi.get_casino_loss_limits.limit.currency"),
                     () -> assertTrue(fapiLimit.isStatus(), "fapi.get_casino_loss_limits.limit.status_is_true"),
                     () -> assertEquals(0, limitAmount.compareTo(fapiLimit.getAmount()), "fapi.get_casino_loss_limits.limit.amount"),
                     () -> assertEquals(0, limitAmount.compareTo(fapiLimit.getRest()), "fapi.get_casino_loss_limits.limit.rest_equals_amount"),

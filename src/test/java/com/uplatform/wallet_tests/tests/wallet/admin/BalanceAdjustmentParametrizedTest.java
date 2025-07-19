@@ -44,7 +44,7 @@ class BalanceAdjustmentParametrizedTest extends BaseParameterizedTest {
     private String platformNodeId;
 
     @BeforeAll
-    void setupGlobalTestData() {
+    void setupGlobalTestContext() {
         this.defaultCurrency = configProvider.getEnvironmentConfig().getPlatform().getCurrency();
         this.platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
     }
@@ -75,26 +75,26 @@ class BalanceAdjustmentParametrizedTest extends BaseParameterizedTest {
             ReasonType reasonType,
             String description
     ) {
-        final class TestData extends BaseParameterizedTest {
+        final class TestContext extends BaseParameterizedTest {
             RegisteredPlayerData registeredPlayer;
             CreateBalanceAdjustmentRequest adjustmentRequest;
             NatsMessage<NatsBalanceAdjustedPayload> balanceAdjustedEvent;
             WalletProjectionMessage projectionAdjustEvent;
             BigDecimal expectedBalanceAfterAdjustment;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
-        testData.expectedBalanceAfterAdjustment = (direction == DirectionType.DECREASE)
+        ctx.expectedBalanceAfterAdjustment = (direction == DirectionType.DECREASE)
                 ? initialBalance.subtract(adjustmentAmount)
                 : initialBalance.add(adjustmentAmount);
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialBalance);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialBalance);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("CAP API: Выполнение тестовой корректировки баланса - " + description, () -> {
-            testData.adjustmentRequest = CreateBalanceAdjustmentRequest.builder()
+            ctx.adjustmentRequest = CreateBalanceAdjustmentRequest.builder()
                     .currency(defaultCurrency)
                     .amount(adjustmentAmount)
                     .reason(reasonType)
@@ -104,27 +104,27 @@ class BalanceAdjustmentParametrizedTest extends BaseParameterizedTest {
                     .build();
 
             var response = capAdminClient.createBalanceAdjustment(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId,
                     "6dfe249e-e967-477b-8a42-83efe85c7c3a",
-                    testData.adjustmentRequest);
+                    ctx.adjustmentRequest);
             assertEquals(HttpStatus.OK, response.getStatusCode(), "cap_api.create_balance_adjustment.status_code");
         });
 
         step("NATS: Проверка поступления события balance_adjusted", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             var filter = (BiPredicate<NatsBalanceAdjustedPayload, String>) (payload, typeHeader) -> {
                 if (!NatsEventType.BALANCE_ADJUSTED.getHeaderValue().equals(typeHeader)) {
                     return false;
                 }
-                return payload.getComment().equals(testData.adjustmentRequest.getComment());
+                return payload.getComment().equals(ctx.adjustmentRequest.getComment());
             };
 
-            testData.balanceAdjustedEvent = natsClient.findMessageAsync(
+            ctx.balanceAdjustedEvent = natsClient.findMessageAsync(
                     subject,
                     NatsBalanceAdjustedPayload.class,
                     filter).get();
@@ -133,31 +133,31 @@ class BalanceAdjustmentParametrizedTest extends BaseParameterizedTest {
                     ? adjustmentAmount.negate() : adjustmentAmount;
 
             assertAll(
-                    () -> assertEquals(testData.adjustmentRequest.getCurrency(), testData.balanceAdjustedEvent.getPayload().getCurrency(), "nats.balance_adjusted.currency"),
-                    () -> assertNotNull(testData.balanceAdjustedEvent.getPayload().getUuid(), "nats.balance_adjusted.uuid"),
-                    () -> assertEquals(0, expectedAdjustment.compareTo(testData.balanceAdjustedEvent.getPayload().getAmount()), "nats.balance_adjusted.amount"),
-                    () -> assertEquals(mapOperationTypeToNatsInt(testData.adjustmentRequest.getOperationType()), testData.balanceAdjustedEvent.getPayload().getOperationType(), "nats.balance_adjusted.operation_type"),
-                    () -> assertEquals(mapDirectionToNatsInt(testData.adjustmentRequest.getDirection()), testData.balanceAdjustedEvent.getPayload().getDirection(), "nats.balance_adjusted.direction"),
-                    () -> assertEquals(mapReasonToNatsInt(testData.adjustmentRequest.getReason()), testData.balanceAdjustedEvent.getPayload().getReason(), "nats.balance_adjusted.reason"),
-                    () -> assertEquals(testData.adjustmentRequest.getComment(), testData.balanceAdjustedEvent.getPayload().getComment(), "nats.balance_adjusted.comment"),
-                    () -> assertNotNull(testData.balanceAdjustedEvent.getPayload().getUserUuid(), "nats.balance_adjusted.user_uuid"),
-                    () -> assertNotNull(testData.balanceAdjustedEvent.getPayload().getUserName(), "nats.balance_adjusted.user_name")
+                    () -> assertEquals(ctx.adjustmentRequest.getCurrency(), ctx.balanceAdjustedEvent.getPayload().getCurrency(), "nats.balance_adjusted.currency"),
+                    () -> assertNotNull(ctx.balanceAdjustedEvent.getPayload().getUuid(), "nats.balance_adjusted.uuid"),
+                    () -> assertEquals(0, expectedAdjustment.compareTo(ctx.balanceAdjustedEvent.getPayload().getAmount()), "nats.balance_adjusted.amount"),
+                    () -> assertEquals(mapOperationTypeToNatsInt(ctx.adjustmentRequest.getOperationType()), ctx.balanceAdjustedEvent.getPayload().getOperationType(), "nats.balance_adjusted.operation_type"),
+                    () -> assertEquals(mapDirectionToNatsInt(ctx.adjustmentRequest.getDirection()), ctx.balanceAdjustedEvent.getPayload().getDirection(), "nats.balance_adjusted.direction"),
+                    () -> assertEquals(mapReasonToNatsInt(ctx.adjustmentRequest.getReason()), ctx.balanceAdjustedEvent.getPayload().getReason(), "nats.balance_adjusted.reason"),
+                    () -> assertEquals(ctx.adjustmentRequest.getComment(), ctx.balanceAdjustedEvent.getPayload().getComment(), "nats.balance_adjusted.comment"),
+                    () -> assertNotNull(ctx.balanceAdjustedEvent.getPayload().getUserUuid(), "nats.balance_adjusted.user_uuid"),
+                    () -> assertNotNull(ctx.balanceAdjustedEvent.getPayload().getUserName(), "nats.balance_adjusted.user_name")
             );
         });
 
         step("Redis: Проверка данных кошелька после корректировки", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.balanceAdjustedEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.balanceAdjustedEvent.getSequence());
             assertAll(
-                    () -> assertEquals(0, testData.expectedBalanceAfterAdjustment.compareTo(aggregate.getBalance()), "redis.wallet.balance")
+                    () -> assertEquals(0, ctx.expectedBalanceAfterAdjustment.compareTo(aggregate.getBalance()), "redis.wallet.balance")
             );
         });
 
         step("Kafka: Проверка поступления сообщения balance_adjusted в топик wallet.v8.projectionSource", () -> {
-            testData.projectionAdjustEvent = walletProjectionKafkaClient.expectWalletProjectionMessageBySeqNum(
-                    testData.balanceAdjustedEvent.getSequence());
-            assertTrue(utils.areEquivalent(testData.projectionAdjustEvent, testData.balanceAdjustedEvent), "kafka.payload");
+            ctx.projectionAdjustEvent = walletProjectionKafkaClient.expectWalletProjectionMessageBySeqNum(
+                    ctx.balanceAdjustedEvent.getSequence());
+            assertTrue(utils.areEquivalent(ctx.projectionAdjustEvent, ctx.balanceAdjustedEvent), "kafka.payload");
         });
     }
 }

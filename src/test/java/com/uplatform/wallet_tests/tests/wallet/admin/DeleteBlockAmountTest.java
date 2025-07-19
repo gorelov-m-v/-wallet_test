@@ -39,7 +39,7 @@ class DeleteBlockAmountTest extends BaseTest {
     private String platformNodeId;
 
     @BeforeAll
-    void setupGlobalTestData() {
+    void setupGlobalTestContext() {
         this.platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
     }
 
@@ -49,23 +49,23 @@ class DeleteBlockAmountTest extends BaseTest {
         final BigDecimal adjustmentAmount = new BigDecimal("150.00");
         final BigDecimal blockAmount = new BigDecimal("50.00");
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             CreateBlockAmountRequest blockAmountRequest;
             ResponseEntity<CreateBlockAmountResponse> blockAmountResponse;
             ResponseEntity<Void> deleteBlockAmountResponse;
             NatsMessage<BlockAmountRevokedEventPayload> blockAmountRevokedEvent;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(BigDecimal.ZERO);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(BigDecimal.ZERO);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("CAP API: Корректировка баланса", () -> {
             var request = CreateBalanceAdjustmentRequest.builder()
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .amount(adjustmentAmount)
                     .reason(ReasonType.MALFUNCTION)
                     .operationType(OperationType.CORRECTION)
@@ -73,7 +73,7 @@ class DeleteBlockAmountTest extends BaseTest {
                     .build();
 
             var response = capAdminClient.createBalanceAdjustment(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId,
                     "6dfe249e-e967-477b-8a42-83efe85c7c3a",
@@ -82,22 +82,22 @@ class DeleteBlockAmountTest extends BaseTest {
         });
 
         step("CAP API: Создание блокировки средств", () -> {
-            testData.blockAmountRequest = CreateBlockAmountRequest.builder()
+            ctx.blockAmountRequest = CreateBlockAmountRequest.builder()
                     .reason(get(NAME))
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .amount(blockAmount.toString())
                     .build();
 
-            testData.blockAmountResponse = capAdminClient.createBlockAmount(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+            ctx.blockAmountResponse = capAdminClient.createBlockAmount(
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId,
-                    testData.blockAmountRequest
+                    ctx.blockAmountRequest
             );
 
-            var responseBody = testData.blockAmountResponse.getBody();
+            var responseBody = ctx.blockAmountResponse.getBody();
             assertAll("Проверка данных в ответе на создание блокировки средств",
-                    () -> assertEquals(HttpStatus.OK, testData.blockAmountResponse.getStatusCode(), "cap_api.block_amount.status_code"),
+                    () -> assertEquals(HttpStatus.OK, ctx.blockAmountResponse.getStatusCode(), "cap_api.block_amount.status_code"),
                     () -> assertNotNull(responseBody, "cap_api.block_amount.response_body_not_null"),
                     () -> assertNotNull(responseBody.getTransactionId(), "cap_api.block_amount.transaction_id")
             );
@@ -107,11 +107,11 @@ class DeleteBlockAmountTest extends BaseTest {
             var response = capAdminClient.getBlockAmountList(
                     utils.getAuthorizationHeader(),
                     platformNodeId,
-                    testData.registeredPlayer.getWalletData().getPlayerUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID());
             assertNotNull(response.getBody(), "cap_api.get_block_amount_list.response_body_not_null");
-            assertNotNull(testData.blockAmountResponse.getBody(), "cap_api.create_block_amount.response_body_not_null");
+            assertNotNull(ctx.blockAmountResponse.getBody(), "cap_api.create_block_amount.response_body_not_null");
 
-            var expectedTxId = testData.blockAmountResponse.getBody().getTransactionId();
+            var expectedTxId = ctx.blockAmountResponse.getBody().getTransactionId();
 
             assertAll("Проверка наличия созданной блокировки в списке",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "cap_api.status_code"),
@@ -121,26 +121,26 @@ class DeleteBlockAmountTest extends BaseTest {
         });
 
         step("CAP API: Удаление блокировки средств", () -> {
-            assertNotNull(testData.blockAmountResponse.getBody(), "cap_api.create_block_amount.response_body_not_null_before_delete");
-            testData.deleteBlockAmountResponse = capAdminClient.deleteBlockAmount(
-                    testData.blockAmountResponse.getBody().getTransactionId(),
+            assertNotNull(ctx.blockAmountResponse.getBody(), "cap_api.create_block_amount.response_body_not_null_before_delete");
+            ctx.deleteBlockAmountResponse = capAdminClient.deleteBlockAmount(
+                    ctx.blockAmountResponse.getBody().getTransactionId(),
                     utils.getAuthorizationHeader(),
                     platformNodeId,
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    testData.registeredPlayer.getWalletData().getPlayerUUID()
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID()
             );
-            assertEquals(HttpStatus.NO_CONTENT, testData.deleteBlockAmountResponse.getStatusCode(), "cap_api.delete_block_amount.status_code");
+            assertEquals(HttpStatus.NO_CONTENT, ctx.deleteBlockAmountResponse.getStatusCode(), "cap_api.delete_block_amount.status_code");
         });
 
         step("CAP API: Проверка отсутствия удаленной блокировки в списке", () -> {
             var response = capAdminClient.getBlockAmountList(
                     utils.getAuthorizationHeader(),
                     platformNodeId,
-                    testData.registeredPlayer.getWalletData().getPlayerUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID());
             assertNotNull(response.getBody(), "cap_api.get_block_amount_list_after_delete.response_body_not_null");
-            assertNotNull(testData.blockAmountResponse.getBody(), "cap_api.create_block_amount.response_body_not_null_for_deleted_tx_id");
+            assertNotNull(ctx.blockAmountResponse.getBody(), "cap_api.create_block_amount.response_body_not_null_for_deleted_tx_id");
 
-            var deletedTxId = testData.blockAmountResponse.getBody().getTransactionId();
+            var deletedTxId = ctx.blockAmountResponse.getBody().getTransactionId();
             var blockStillExists = response.getBody().getItems().stream()
                     .anyMatch(item -> item.getTransactionId().equals(deletedTxId));
 
@@ -152,18 +152,18 @@ class DeleteBlockAmountTest extends BaseTest {
 
         step("NATS: Проверка поступления события block_amount_revoked", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<BlockAmountRevokedEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.BLOCK_AMOUNT_REVOKED.getHeaderValue().equals(typeHeader);
 
-            testData.blockAmountRevokedEvent = natsClient.findMessageAsync(
+            ctx.blockAmountRevokedEvent = natsClient.findMessageAsync(
                     subject,
                     BlockAmountRevokedEventPayload.class,
                     filter).get();
 
-            var payload = testData.blockAmountRevokedEvent.getPayload();
+            var payload = ctx.blockAmountRevokedEvent.getPayload();
             assertAll("Проверка полей в событии снятия блокировки",
                     () -> assertNotNull(payload.getUuid(), "nats.block_amount_revoked.uuid"),
                     () -> assertNotNull(payload.getUserUuid(), "nats.block_amount_revoked.user_uuid"),
@@ -174,32 +174,32 @@ class DeleteBlockAmountTest extends BaseTest {
 
         step("Kafka: Проверка поступления сообщения block_amount_revoked в топик wallet.v8.projectionSource", () -> {
             var kafkaMessage = walletProjectionKafkaClient.expectWalletProjectionMessageBySeqNum(
-                    testData.blockAmountRevokedEvent.getSequence());
+                    ctx.blockAmountRevokedEvent.getSequence());
             assertTrue(utils.areEquivalent(
-                    kafkaMessage, testData.blockAmountRevokedEvent), "kafka.payload");
+                    kafkaMessage, ctx.blockAmountRevokedEvent), "kafka.payload");
         });
 
         step("Redis(Wallet): Получение и проверка полных данных кошелька", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.blockAmountRevokedEvent.getSequence());
-            assertNotNull(testData.blockAmountResponse.getBody(), "cap_api.create_block_amount.response_body_not_null_for_redis_check");
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.blockAmountRevokedEvent.getSequence());
+            assertNotNull(ctx.blockAmountResponse.getBody(), "cap_api.create_block_amount.response_body_not_null_for_redis_check");
 
             var expectedBalance = adjustmentAmount;
-            var deletedBlockAmountId = testData.blockAmountResponse.getBody().getTransactionId();
+            var deletedBlockAmountId = ctx.blockAmountResponse.getBody().getTransactionId();
 
             var blockedAmount = aggregate.getBlockedAmounts().stream()
                     .filter(block -> block.getUuid().equals(deletedBlockAmountId))
                     .findFirst();
 
             assertAll("Проверка агрегата после удаления блокировки",
-                    () -> assertEquals((int) testData.blockAmountRevokedEvent.getSequence(), aggregate.getLastSeqNumber(), "redis.aggregate.last_seq_number"),
+                    () -> assertEquals((int) ctx.blockAmountRevokedEvent.getSequence(), aggregate.getLastSeqNumber(), "redis.aggregate.last_seq_number"),
                     () -> assertEquals(0, expectedBalance.compareTo(aggregate.getBalance()), "redis.aggregate.balance"),
                     () -> assertEquals(0, expectedBalance.compareTo(aggregate.getAvailableWithdrawalBalance()), "redis.aggregate.available_withdrawal_balance"),
                     () -> assertEquals(0, adjustmentAmount.subtract(blockAmount).compareTo(aggregate.getBalanceBefore()), "redis.aggregate.balance_before"),
                     () -> assertTrue(blockedAmount.isPresent(), "redis.aggregate.blocked_amount.exists"),
                     () -> assertEquals(NatsBlockAmountStatus.REVOKED.getValue(), blockedAmount.get().getStatus(), "redis.aggregate.blocked_amount.status"),
-                    () -> assertEquals(testData.blockAmountRequest.getReason(), blockedAmount.get().getReason(), "redis.aggregate.blocked_amount.reason"),
+                    () -> assertEquals(ctx.blockAmountRequest.getReason(), blockedAmount.get().getReason(), "redis.aggregate.blocked_amount.reason"),
                     () -> assertEquals(0, blockAmount.negate().compareTo(blockedAmount.get().getAmount()), "redis.aggregate.blocked_amount.amount"),
                     () -> assertEquals(0, blockAmount.compareTo(blockedAmount.get().getDeltaAvailableWithdrawalBalance()), "redis.aggregate.blocked_amount.delta_available_withdrawal_balance")
             );
