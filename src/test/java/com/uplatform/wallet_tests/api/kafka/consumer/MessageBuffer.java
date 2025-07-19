@@ -7,8 +7,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Deque;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -19,7 +20,7 @@ public class MessageBuffer {
     private final List<String> listenTopicSuffixes;
     private final String topicPrefix;
 
-    private final ConcurrentHashMap<String, ConcurrentLinkedDeque<ConsumerRecord<String, String>>> buffers = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, LinkedBlockingDeque<ConsumerRecord<String, String>>> buffers = new ConcurrentHashMap<>();
     private List<String> fullListeningTopics;
 
     public MessageBuffer(
@@ -35,26 +36,25 @@ public class MessageBuffer {
         this.fullListeningTopics = listenTopicSuffixes.stream()
                 .map(suffix -> topicPrefix + suffix)
                 .collect(Collectors.toList());
-        this.fullListeningTopics.forEach(topic -> buffers.put(topic, new ConcurrentLinkedDeque<>()));
+        int capacity = bufferSize > 0 ? bufferSize : Integer.MAX_VALUE;
+        this.fullListeningTopics.forEach(topic -> buffers.put(topic, new LinkedBlockingDeque<>(capacity)));
     }
 
     public void addRecord(ConsumerRecord<String, String> record) {
         String topic = record.topic();
-        ConcurrentLinkedDeque<ConsumerRecord<String, String>> buffer = buffers.get(topic);
+        LinkedBlockingDeque<ConsumerRecord<String, String>> buffer = buffers.get(topic);
 
         if (buffer != null) {
-            buffer.addLast(record);
-            while (bufferSize > 0 && buffer.size() > bufferSize) {
+            if (bufferSize > 0 && buffer.remainingCapacity() == 0) {
                 ConsumerRecord<String, String> removed = buffer.pollFirst();
                 if (removed != null) {
                     log.warn("Buffer overflow: Removed oldest message [Topic: {}, Offset: {}]. Buffer size now: {}",
                             topic,
                             removed.offset(),
                             buffer.size());
-                } else {
-                    break;
                 }
             }
+            buffer.offerLast(record);
         } else {
             log.error("Received message for unexpected/unconfigured topic buffer: {}. Message ignored. Ensure this topic is in 'listenTopicSuffixes'. Listening to: {}",
                     topic,
@@ -62,7 +62,7 @@ public class MessageBuffer {
         }
     }
 
-    public ConcurrentLinkedDeque<ConsumerRecord<String, String>> getBufferForTopic(String topicName) {
+    public Deque<ConsumerRecord<String, String>> getBufferForTopic(String topicName) {
         return buffers.get(topicName);
     }
 
@@ -75,12 +75,12 @@ public class MessageBuffer {
     }
 
     public void clearAllBuffers() {
-        buffers.values().forEach(ConcurrentLinkedDeque::clear);
+        buffers.values().forEach(LinkedBlockingDeque::clear);
         log.info("All message buffers cleared.");
     }
 
     public void clearBuffer(String topicName) {
-        ConcurrentLinkedDeque<ConsumerRecord<String, String>> buffer = buffers.get(topicName);
+        LinkedBlockingDeque<ConsumerRecord<String, String>> buffer = buffers.get(topicName);
         if (buffer != null) {
             buffer.clear();
         } else {

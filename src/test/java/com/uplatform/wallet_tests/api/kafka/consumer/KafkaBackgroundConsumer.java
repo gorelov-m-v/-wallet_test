@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.Deque;
 import java.util.concurrent.Callable;
 import static org.awaitility.Awaitility.await;
 import org.awaitility.core.ConditionTimeoutException;
@@ -90,7 +90,7 @@ public class KafkaBackgroundConsumer {
         allureReporter.addSearchInfoAttachment(fullTopicName, "(inferred from Type)", targetClass, filterCriteria);
 
         Callable<Optional<T>> searchCallable = () -> {
-            ConcurrentLinkedDeque<ConsumerRecord<String, String>> buffer = messageBuffer.getBufferForTopic(fullTopicName);
+            Deque<ConsumerRecord<String, String>> buffer = messageBuffer.getBufferForTopic(fullTopicName);
             return messageFinder.searchAndDeserialize(buffer, filterCriteria, targetClass, fullTopicName);
         };
 
@@ -128,7 +128,7 @@ public class KafkaBackgroundConsumer {
             return 0;
         }
 
-        ConcurrentLinkedDeque<ConsumerRecord<String, String>> buffer = messageBuffer.getBufferForTopic(fullTopicName);
+        Deque<ConsumerRecord<String, String>> buffer = messageBuffer.getBufferForTopic(fullTopicName);
         return messageFinder.countMatchingMessages(buffer, filterCriteria);
     }
 
