@@ -356,8 +356,9 @@ step("Kafka: получение сообщения", () -> {
 
 1. Добавьте параметры нового инстанса в `redis.instances` конфигурационного
    файла.
-2. В `RedisConfig` опишите бины `RedisProperties`, `LettuceConnectionFactory` и
-   `RedisTemplate` по образцу существующих.
+2. В `RedisConfig` создайте только бин `RedisProperties` и вызовите метод
+   `createRedisInfrastructure("bonus", bonusRedisProperties())` для получения
+   `RedisTemplate` и соответствующего `LettuceConnectionFactory`.
 3. Создайте клиент, расширяющий `AbstractRedisClient`.
 
 Пример фрагмента `RedisConfig` для инстанса `bonus`:
@@ -369,16 +370,10 @@ public RedisProperties bonusRedisProperties() {
     return new RedisProperties();
 }
 
-@Bean("bonusRedisConnectionFactory")
-public LettuceConnectionFactory bonusRedisConnectionFactory(
-        @Qualifier("bonusRedisProperties") RedisProperties properties) {
-    return createConnectionFactory(properties, bonusLettucePoolingConfig(properties));
-}
-
 @Bean("bonusRedisTemplate")
 public RedisTemplate<String, String> bonusRedisTemplate(
-        @Qualifier("bonusRedisConnectionFactory") RedisConnectionFactory connectionFactory) {
-    return createStringRedisTemplate(connectionFactory);
+        @Qualifier("bonusRedisProperties") RedisProperties properties) {
+    return createRedisInfrastructure("bonus", properties);
 }
 ```
 

@@ -11,12 +11,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 
 import java.time.Duration;
 
@@ -29,25 +29,10 @@ public class RedisConfig {
         return new RedisProperties();
     }
 
-    @Bean("playerLettucePoolingConfig")
-    public LettucePoolingClientConfiguration playerLettucePoolingConfig(
-            @Qualifier("playerRedisProperties") RedisProperties properties) {
-
-        return createPoolingConfig(properties);
-    }
-
-    @Bean("playerRedisConnectionFactory")
-    public LettuceConnectionFactory playerRedisConnectionFactory(
-            @Qualifier("playerRedisProperties") RedisProperties properties,
-            @Qualifier("playerLettucePoolingConfig") LettucePoolingClientConfiguration clientConfiguration) {
-
-        return createConnectionFactory(properties, clientConfiguration);
-    }
-
     @Bean("playerRedisTemplate")
     public RedisTemplate<String, String> playerRedisTemplate(
-            @Qualifier("playerRedisConnectionFactory") RedisConnectionFactory connectionFactory) {
-        return createStringRedisTemplate(connectionFactory);
+            @Qualifier("playerRedisProperties") RedisProperties properties) {
+        return createRedisInfrastructure("player", properties);
     }
 
     @Bean("walletRedisProperties")
@@ -57,27 +42,11 @@ public class RedisConfig {
         return new RedisProperties();
     }
 
-    @Bean("walletLettucePoolingConfig")
-    public LettucePoolingClientConfiguration walletLettucePoolingConfig(
-            @Qualifier("walletRedisProperties") RedisProperties properties) {
-
-        return createPoolingConfig(properties);
-    }
-
-    @Bean("walletRedisConnectionFactory")
-    @Primary
-    public LettuceConnectionFactory walletRedisConnectionFactory(
-            @Qualifier("walletRedisProperties") RedisProperties properties,
-            @Qualifier("walletLettucePoolingConfig") LettucePoolingClientConfiguration clientConfiguration) {
-
-        return createConnectionFactory(properties, clientConfiguration);
-    }
-
     @Bean("walletRedisTemplate")
     @Primary
     public RedisTemplate<String, String> walletRedisTemplate(
-            @Qualifier("walletRedisConnectionFactory") RedisConnectionFactory connectionFactory) {
-        return createStringRedisTemplate(connectionFactory);
+            @Qualifier("walletRedisProperties") RedisProperties properties) {
+        return createRedisInfrastructure("wallet", properties);
     }
 
     @Bean
@@ -142,5 +111,11 @@ public class RedisConfig {
         template.setHashValueSerializer(stringSerializer);
         template.afterPropertiesSet();
         return template;
+    }
+
+    private RedisTemplate<String, String> createRedisInfrastructure(String instanceName, RedisProperties properties) {
+        LettucePoolingClientConfiguration poolingConfig = createPoolingConfig(properties);
+        LettuceConnectionFactory connectionFactory = createConnectionFactory(properties, poolingConfig);
+        return createStringRedisTemplate(connectionFactory);
     }
 }
