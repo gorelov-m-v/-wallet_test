@@ -53,29 +53,29 @@ class RefundAfterRefundTest extends BaseTest {
         final BigDecimal adjustmentAmount = new BigDecimal("150.00");
         final BigDecimal betAmount = new BigDecimal("10.15");
         final BigDecimal refundCoefficient = new BigDecimal("1.00");
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             MakePaymentData betInputData;
             MakePaymentRequest betRequestBody;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Manager API: Совершение ставки на спорт", () -> {
-            testData.betInputData = MakePaymentData.builder()
+            ctx.betInputData = MakePaymentData.builder()
                     .type(NatsBettingTransactionOperation.BET)
-                    .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
+                    .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
                     .summ(betAmount.toPlainString())
                     .couponType(NatsBettingCouponType.SINGLE)
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .build();
 
-            testData.betRequestBody = generateRequest(testData.betInputData);
-            var response = managerClient.makePayment(testData.betRequestBody);
+            ctx.betRequestBody = generateRequest(ctx.betInputData);
+            var response = managerClient.makePayment(ctx.betRequestBody);
 
             assertAll("Проверка статус-кода и тела ответа",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code"),
@@ -87,9 +87,9 @@ class RefundAfterRefundTest extends BaseTest {
         });
 
         step("Manager API: Получение рефанда", () -> {
-            testData.betRequestBody.setType(NatsBettingTransactionOperation.REFUND);
-            testData.betRequestBody.setTotalCoef(refundCoefficient.toString());
-            var response = managerClient.makePayment(testData.betRequestBody);
+            ctx.betRequestBody.setType(NatsBettingTransactionOperation.REFUND);
+            ctx.betRequestBody.setTotalCoef(refundCoefficient.toString());
+            var response = managerClient.makePayment(ctx.betRequestBody);
 
             assertAll("Проверка статус-кода и тела ответа",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code"),
@@ -101,9 +101,9 @@ class RefundAfterRefundTest extends BaseTest {
         });
 
         step("Manager API: Повторное получение рефанда", () -> {
-            testData.betRequestBody.setType(NatsBettingTransactionOperation.REFUND);
-            testData.betRequestBody.setTotalCoef(refundCoefficient.toString());
-            var response = managerClient.makePayment(testData.betRequestBody);
+            ctx.betRequestBody.setType(NatsBettingTransactionOperation.REFUND);
+            ctx.betRequestBody.setTotalCoef(refundCoefficient.toString());
+            var response = managerClient.makePayment(ctx.betRequestBody);
 
             assertAll("Проверка статус-кода и тела ответа",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code"),

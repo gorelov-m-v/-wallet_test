@@ -84,28 +84,28 @@ class DuplicateSequentialWinParametrizedTest extends BaseParameterizedTest {
     void testDuplicateWinReturnsIdempotentResponse(NatsGamblingTransactionOperation operationParam, BigDecimal winAmountParam)  {
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             BetRequestBody initialBetRequest;
             WinRequestBody firstWinRequest;
             NatsMessage<NatsGamblingEventPayload> firstWinNatsEvent;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("Manager API: Совершение базовой ставки", () -> {
-            testData.initialBetRequest = BetRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+            ctx.initialBetRequest = BetRequestBody.builder()
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(betAmount)
                     .transactionId(UUID.randomUUID().toString())
                     .type(NatsGamblingTransactionOperation.BET)
@@ -115,52 +115,52 @@ class DuplicateSequentialWinParametrizedTest extends BaseParameterizedTest {
 
             var response = managerClient.bet(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.BET, testData.initialBetRequest),
-                    testData.initialBetRequest);
+                    utils.createSignature(ApiEndpoints.BET, ctx.initialBetRequest),
+                    ctx.initialBetRequest);
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.bet.base_bet_status_code");
         });
 
         step("Manager API: Совершение первого выигрыша", () -> {
-            testData.firstWinRequest = WinRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+            ctx.firstWinRequest = WinRequestBody.builder()
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(winAmountParam)
                     .transactionId(UUID.randomUUID().toString())
                     .type(operationParam)
-                    .roundId(testData.initialBetRequest.getRoundId())
+                    .roundId(ctx.initialBetRequest.getRoundId())
                     .roundClosed(false)
                     .build();
 
             var response = managerClient.win(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.WIN, testData.firstWinRequest),
-                    testData.firstWinRequest);
+                    utils.createSignature(ApiEndpoints.WIN, ctx.firstWinRequest),
+                    ctx.firstWinRequest);
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.win.first_win_status_code");
         });
 
         step("NATS: Ожидание NATS-события won_from_gamble для первого выигрыша", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.WON_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                            testData.firstWinRequest.getTransactionId().equals(payload.getUuid());
+                            ctx.firstWinRequest.getTransactionId().equals(payload.getUuid());
 
-            testData.firstWinNatsEvent = natsClient.findMessageAsync(
+            ctx.firstWinNatsEvent = natsClient.findMessageAsync(
                     subject,
                     NatsGamblingEventPayload.class,
                     filter).get();
 
-            assertNotNull(testData.firstWinNatsEvent, "nats.won_from_gamble");
+            assertNotNull(ctx.firstWinNatsEvent, "nats.won_from_gamble");
         });
 
         step("Manager API: Попытка дублирования выигрыша", () -> {
             var duplicateResponse = managerClient.win(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.WIN, testData.firstWinRequest),
-                    testData.firstWinRequest
+                    utils.createSignature(ApiEndpoints.WIN, ctx.firstWinRequest),
+                    ctx.firstWinRequest
             );
 
             var responseBody = duplicateResponse.getBody();
@@ -168,7 +168,7 @@ class DuplicateSequentialWinParametrizedTest extends BaseParameterizedTest {
             assertAll("Проверка ответа на дубликат выигрыша",
                     () -> assertEquals(HttpStatus.OK, duplicateResponse.getStatusCode(), "manager_api.win.duplicate_win_status_code"),
                     () -> assertNotNull(responseBody, "manager_api.win.duplicate_win_response_body"),
-                    () -> assertEquals(testData.firstWinRequest.getTransactionId(), responseBody.getTransactionId(), "manager_api.win.duplicate_win_transaction_id"),
+                    () -> assertEquals(ctx.firstWinRequest.getTransactionId(), responseBody.getTransactionId(), "manager_api.win.duplicate_win_transaction_id"),
                     () -> assertEquals(0, BigDecimal.ZERO.compareTo(responseBody.getBalance()), "manager_api.win.duplicate_win_balance")
             );
         });

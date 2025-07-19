@@ -61,32 +61,32 @@ class BetWithSingleBetLimitTest extends BaseTest {
     void shouldRejectBetWhenSingleBetLimitReached() {
         final BigDecimal limitAmount = new BigDecimal("150.12");
         final BigDecimal betAmount = new BigDecimal("170.15");
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer();
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer();
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Public API: Установка лимита на одиночную ставку", () -> {
             var request = SetSingleBetLimitRequest.builder()
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .amount(limitAmount.toString())
                     .build();
 
             var response = publicClient.setSingleBetLimit(
-                    testData.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
+                    ctx.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
                     request);
 
             assertEquals(HttpStatus.CREATED, response.getStatusCode(), "public_api.status_code");
 
             step("Sub-step NATS: получение события limit_changed_v2", () -> {
                 var subject = natsClient.buildWalletSubject(
-                        testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                        testData.registeredPlayer.getWalletData().getWalletUUID());
+                        ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                        ctx.registeredPlayer.getWalletData().getWalletUUID());
 
                 BiPredicate<NatsLimitChangedV2Payload, String> filter = (payload, typeHeader) ->
                         NatsEventType.LIMIT_CHANGED_V2.getHeaderValue().equals(typeHeader);
@@ -99,10 +99,10 @@ class BetWithSingleBetLimitTest extends BaseTest {
         step("Manager API: Совершение ставки на спорт", () -> {
             var data = MakePaymentData.builder()
                     .type(NatsBettingTransactionOperation.BET)
-                    .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
+                    .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
                     .summ(betAmount.toPlainString())
                     .couponType(NatsBettingCouponType.SINGLE)
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .build();
 
             var request = generateRequest(data);

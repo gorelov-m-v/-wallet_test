@@ -32,25 +32,25 @@ class TournamentWhenGamblingBlockedTest extends BaseTest {
         final String platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             BigDecimal adjustmentAmount;
             BigDecimal tournamentAmount;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
-        testData.adjustmentAmount = new BigDecimal("150.00");
-        testData.tournamentAmount = new BigDecimal("50.25");
+        ctx.adjustmentAmount = new BigDecimal("150.00");
+        ctx.tournamentAmount = new BigDecimal("50.25");
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(testData.adjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(ctx.adjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии и проверка в БД", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("CAP API: Блокировка гемблинга", () -> {
@@ -60,7 +60,7 @@ class TournamentWhenGamblingBlockedTest extends BaseTest {
                     .build();
 
             var response = capAdminClient.updateBlockers(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId,
                     request
@@ -71,13 +71,13 @@ class TournamentWhenGamblingBlockedTest extends BaseTest {
 
         step("Manager API: Начисление турнирного выигрыша", () -> {
             var request = TournamentRequestBody.builder()
-                    .amount(testData.tournamentAmount)
-                    .playerId(testData.registeredPlayer.getWalletData().getWalletUUID())
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                    .amount(ctx.tournamentAmount)
+                    .playerId(ctx.registeredPlayer.getWalletData().getWalletUUID())
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .transactionId(UUID.randomUUID().toString())
-                    .gameUuid(testData.gameLaunchData.getDbGameSession().getGameUuid())
+                    .gameUuid(ctx.gameLaunchData.getDbGameSession().getGameUuid())
                     .roundId(UUID.randomUUID().toString())
-                    .providerUuid(testData.gameLaunchData.getDbGameSession().getProviderUuid())
+                    .providerUuid(ctx.gameLaunchData.getDbGameSession().getProviderUuid())
                     .build();
 
             var response = managerClient.tournament(

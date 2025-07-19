@@ -91,7 +91,7 @@ class DuplicateDisplacedWinParametrizedTest extends BaseParameterizedTest {
 
         final int winsToMakeToDisplace = maxGamblingCountInRedis + 1;
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             List<WinRequestBody> allMadeWinRequests = new ArrayList<>();
@@ -99,33 +99,33 @@ class DuplicateDisplacedWinParametrizedTest extends BaseParameterizedTest {
             NatsMessage<NatsGamblingEventPayload> lastWinNatsEvent;
             WinRequestBody displacedWinRequestToDuplicate;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("Manager API: Совершение выигрышей для вытеснения (тип: " + operationParam + ", сумма: " + winAmountParam + ")", () -> {
             for (int i = 0; i < winsToMakeToDisplace; i++) {
                 var transactionId = UUID.randomUUID().toString();
                 if (i == winsToMakeToDisplace - 1) {
-                    testData.lastMadeWinTransactionId = transactionId;
+                    ctx.lastMadeWinTransactionId = transactionId;
                 }
                 var winRequestBody = WinRequestBody.builder()
-                        .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                        .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                         .amount(winAmountParam)
                         .transactionId(transactionId)
                         .type(operationParam)
                         .roundId(UUID.randomUUID().toString())
                         .roundClosed(i == winsToMakeToDisplace - 1)
                         .build();
-                testData.allMadeWinRequests.add(winRequestBody);
+                ctx.allMadeWinRequests.add(winRequestBody);
 
                 var currentWinNumber = i + 1;
                 step("Совершение выигрыша #" + currentWinNumber + " (ID: " + transactionId + ")", () -> {
@@ -140,35 +140,35 @@ class DuplicateDisplacedWinParametrizedTest extends BaseParameterizedTest {
 
         step("NATS: Ожидание NATS-события для последнего выигрыша", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.WON_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                            testData.lastMadeWinTransactionId.equals(payload.getUuid());
+                            ctx.lastMadeWinTransactionId.equals(payload.getUuid());
 
-            testData.lastWinNatsEvent = natsClient.findMessageAsync(
+            ctx.lastWinNatsEvent = natsClient.findMessageAsync(
                     subject,
                     NatsGamblingEventPayload.class,
                     filter).get();
 
-            assertNotNull(testData.lastWinNatsEvent, "nats.win_event");
+            assertNotNull(ctx.lastWinNatsEvent, "nats.win_event");
         });
 
         step("Redis: Определение вытесненной транзакции", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.lastWinNatsEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.lastWinNatsEvent.getSequence());
 
             var transactionIdsCurrentlyInRedis = aggregate.getGambling().keySet();
 
-            var allMadeTransactionIds = testData.allMadeWinRequests.stream()
+            var allMadeTransactionIds = ctx.allMadeWinRequests.stream()
                     .map(WinRequestBody::getTransactionId).collect(Collectors.toCollection(HashSet::new));
             allMadeTransactionIds.removeAll(transactionIdsCurrentlyInRedis);
             assertEquals(1, allMadeTransactionIds.size(), "redis.displaced_transaction.count");
             var displacedTxId = allMadeTransactionIds.iterator().next();
 
-            testData.displacedWinRequestToDuplicate = testData.allMadeWinRequests.stream()
+            ctx.displacedWinRequestToDuplicate = ctx.allMadeWinRequests.stream()
                     .filter(winReq -> winReq.getTransactionId().equals(displacedTxId))
                     .findFirst()
                     .orElseThrow(() -> new AssertionError("test.displaced_request.not_found"));
@@ -177,8 +177,8 @@ class DuplicateDisplacedWinParametrizedTest extends BaseParameterizedTest {
         step("Manager API: Попытка дублирования вытесненной транзакции", () -> {
             var duplicateResponse = managerClient.win(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.WIN, testData.displacedWinRequestToDuplicate),
-                    testData.displacedWinRequestToDuplicate
+                    utils.createSignature(ApiEndpoints.WIN, ctx.displacedWinRequestToDuplicate),
+                    ctx.displacedWinRequestToDuplicate
             );
 
             var responseBody = duplicateResponse.getBody();
@@ -186,7 +186,7 @@ class DuplicateDisplacedWinParametrizedTest extends BaseParameterizedTest {
             assertAll("Проверка ответа на дубликат вытесненной транзакции",
                     () -> assertEquals(HttpStatus.OK, duplicateResponse.getStatusCode(), "manager_api.status_code"),
                     () -> assertNotNull(responseBody, "manager_api.response_body"),
-                    () -> assertEquals(testData.displacedWinRequestToDuplicate.getTransactionId(), responseBody.getTransactionId(), "manager_api.transaction_id"),
+                    () -> assertEquals(ctx.displacedWinRequestToDuplicate.getTransactionId(), responseBody.getTransactionId(), "manager_api.transaction_id"),
                     () -> assertEquals(0, BigDecimal.ZERO.compareTo(responseBody.getBalance()), "manager_api.balance")
             );
         });

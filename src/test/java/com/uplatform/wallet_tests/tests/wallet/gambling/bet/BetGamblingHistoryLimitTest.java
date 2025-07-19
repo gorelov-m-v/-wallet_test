@@ -94,37 +94,37 @@ class BetGamblingHistoryLimitTest extends BaseParameterizedTest {
                 .multiply(new BigDecimal(operationsToMake))
                 .add(new BigDecimal("10.00"));
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             String lastTransactionId;
             NatsMessage<NatsGamblingEventPayload> lastBetEvent;
             BigDecimal currentBalance;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(dynamicInitialAdjustmentAmount);
-            testData.currentBalance = testData.registeredPlayer.getWalletData().getBalance();
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(dynamicInitialAdjustmentAmount);
+            ctx.currentBalance = ctx.registeredPlayer.getWalletData().getBalance();
 
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии для операции", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
 
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step(String.format("Manager API: Совершение %d операций типа %s", operationsToMake, operationParam), () -> {
             for (int i = 0; i < operationsToMake; i++) {
                 var transactionId = UUID.randomUUID().toString();
                 if (i == operationsToMake - 1) {
-                    testData.lastTransactionId = transactionId;
+                    ctx.lastTransactionId = transactionId;
                 }
 
                 var betRequestBody = BetRequestBody.builder()
-                        .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                        .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                         .amount(operationAmount)
                         .transactionId(transactionId)
                         .type(operationParam)
@@ -141,44 +141,44 @@ class BetGamblingHistoryLimitTest extends BaseParameterizedTest {
                             utils.createSignature(ApiEndpoints.BET, betRequestBody),
                             betRequestBody);
 
-                    testData.currentBalance = testData.currentBalance.subtract(operationAmount);
+                    ctx.currentBalance = ctx.currentBalance.subtract(operationAmount);
 
                     assertAll(String.format("Проверка ответа API для операции %s #%d", operationParam, currentOperationNumber),
                             () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code"),
                             () -> assertEquals(currentTxId, response.getBody().getTransactionId(), "manager_api.body.transactionId"),
-                            () -> assertEquals(0, testData.currentBalance.compareTo(response.getBody().getBalance()), "manager_api.body.balance")
+                            () -> assertEquals(0, ctx.currentBalance.compareTo(response.getBody().getBalance()), "manager_api.body.balance")
                     );
                 });
             }
         });
 
-        step(String.format("NATS: Ожидание NATS-события betted_from_gamble для последней операции %s (ID: %s)", operationParam, testData.lastTransactionId), () -> {
+        step(String.format("NATS: Ожидание NATS-события betted_from_gamble для последней операции %s (ID: %s)", operationParam, ctx.lastTransactionId), () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.BETTED_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                            testData.lastTransactionId.equals(payload.getUuid());
+                            ctx.lastTransactionId.equals(payload.getUuid());
 
-            testData.lastBetEvent = natsClient.findMessageAsync(
+            ctx.lastBetEvent = natsClient.findMessageAsync(
                     subject,
                     NatsGamblingEventPayload.class,
                     filter).get();
 
-            assertNotNull(testData.lastBetEvent, "nats.betted_from_gamble");
+            assertNotNull(ctx.lastBetEvent, "nats.betted_from_gamble");
         });
 
         step(String.format("Redis(Wallet): Получение и проверка данных кошелька для операции %s", operationParam), () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.lastBetEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.lastBetEvent.getSequence());
             var gamblingTransactionsInRedis = aggregate.getGambling();
 
             assertAll("Проверка данных в Redis",
                     () -> assertEquals(maxGamblingCountInRedis, gamblingTransactionsInRedis.size(), "redis.wallet.gambling.count"),
-                    () -> assertEquals(0, testData.currentBalance.compareTo(aggregate.getBalance()), "redis.wallet.balance"),
-                    () -> assertEquals((int) testData.lastBetEvent.getSequence(), aggregate.getLastSeqNumber(), "redis.wallet.last_seq_number")
+                    () -> assertEquals(0, ctx.currentBalance.compareTo(aggregate.getBalance()), "redis.wallet.balance"),
+                    () -> assertEquals((int) ctx.lastBetEvent.getSequence(), aggregate.getLastSeqNumber(), "redis.wallet.last_seq_number")
             );
         });
     }

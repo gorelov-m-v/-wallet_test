@@ -55,21 +55,21 @@ class RefundForNonExistingBetTest extends BaseTest {
         final String refundCoefficientForRequest = "1.00";
         final Long nonExistingBetId = System.currentTimeMillis();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Manager API: Попытка зарегистрировать рефанд для несуществующей ставки", () -> {
             var refundInputData = MakePaymentData.builder()
                     .type(NatsBettingTransactionOperation.REFUND)
-                    .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .summ(refundSumForRequest.toPlainString())
                     .totalCoef(refundCoefficientForRequest)
                     .couponType(NatsBettingCouponType.SINGLE)

@@ -53,21 +53,21 @@ class LossForNonExistingBetTest extends BaseTest {
         final BigDecimal lossAmount = BigDecimal.ZERO;
         final Long nonExistingBetId = System.currentTimeMillis();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Manager API: Попытка зарегистрировать проигрыш для несуществующей ставки", () -> {
             var lossInputData = MakePaymentData.builder()
                     .type(NatsBettingTransactionOperation.LOSS)
-                    .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .summ(lossAmount.toPlainString())
                     .couponType(NatsBettingCouponType.SINGLE)
                     .betId(nonExistingBetId)

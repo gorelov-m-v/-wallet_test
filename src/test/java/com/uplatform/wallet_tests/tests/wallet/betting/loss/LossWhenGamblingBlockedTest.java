@@ -55,32 +55,32 @@ class LossWhenGamblingBlockedTest extends BaseTest {
         final BigDecimal adjustmentAmount = new BigDecimal("150.00");
         final BigDecimal betAmount = new BigDecimal("10.15");
         final BigDecimal lossAmount = BigDecimal.ZERO;
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             MakePaymentData betInputData;
             MakePaymentRequest betRequestBody;
             BigDecimal expectedBalance;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
-        testData.expectedBalance = adjustmentAmount.subtract(betAmount);
+        ctx.expectedBalance = adjustmentAmount.subtract(betAmount);
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Manager API: Совершение ставки на спорт", () -> {
-            testData.betInputData = MakePaymentData.builder()
+            ctx.betInputData = MakePaymentData.builder()
                     .type(NatsBettingTransactionOperation.BET)
-                    .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
+                    .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
                     .summ(betAmount.toPlainString())
                     .couponType(NatsBettingCouponType.SINGLE)
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .build();
 
-            testData.betRequestBody = generateRequest(testData.betInputData);
-            var response = managerClient.makePayment(testData.betRequestBody);
+            ctx.betRequestBody = generateRequest(ctx.betInputData);
+            var response = managerClient.makePayment(ctx.betRequestBody);
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code");
         });
 
@@ -91,7 +91,7 @@ class LossWhenGamblingBlockedTest extends BaseTest {
                     .build();
 
             var response = capAdminClient.updateBlockers(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId,
                     request
@@ -100,9 +100,9 @@ class LossWhenGamblingBlockedTest extends BaseTest {
         });
 
         step("Manager API: Получение проигрыша", () -> {
-            testData.betRequestBody.setSumm(lossAmount.toString());
-            testData.betRequestBody.setType(NatsBettingTransactionOperation.LOSS);
-            var response = managerClient.makePayment(testData.betRequestBody);
+            ctx.betRequestBody.setSumm(lossAmount.toString());
+            ctx.betRequestBody.setType(NatsBettingTransactionOperation.LOSS);
+            var response = managerClient.makePayment(ctx.betRequestBody);
 
             assertAll("Проверка статус-кода и тела ответа",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code"),

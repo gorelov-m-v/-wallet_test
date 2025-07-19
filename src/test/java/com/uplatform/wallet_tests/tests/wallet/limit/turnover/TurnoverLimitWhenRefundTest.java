@@ -72,7 +72,7 @@ class TurnoverLimitWhenRefundTest extends BaseTest {
     void testTurnoverLimitChangeOnFullRefund() {
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             BetRequestBody betRequestBody;
@@ -85,42 +85,42 @@ class TurnoverLimitWhenRefundTest extends BaseTest {
             BigDecimal expectedRestAmountAfterRefund;
             BigDecimal expectedSpentAmountAfterRefund;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
-        testData.expectedPlayerBalanceAfterBet = initialAdjustmentAmount.subtract(betAmount);
-        testData.expectedPlayerBalanceAfterRefund = testData.expectedPlayerBalanceAfterBet.add(refundAmount);
+        ctx.expectedPlayerBalanceAfterBet = initialAdjustmentAmount.subtract(betAmount);
+        ctx.expectedPlayerBalanceAfterRefund = ctx.expectedPlayerBalanceAfterBet.add(refundAmount);
 
-        testData.expectedSpentAmountAfterRefund = betAmount.subtract(refundAmount);
-        testData.expectedRestAmountAfterRefund = limitAmountBase.subtract(betAmount).add(refundAmount);
+        ctx.expectedSpentAmountAfterRefund = betAmount.subtract(refundAmount);
+        ctx.expectedRestAmountAfterRefund = limitAmountBase.subtract(betAmount).add(refundAmount);
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("Public API: Установка лимита на оборот средств", () -> {
             var request = SetTurnoverLimitRequest.builder()
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .type(NatsLimitIntervalType.DAILY)
                     .amount(limitAmountBase.toString())
                     .startedAt((int) (System.currentTimeMillis() / 1000))
                     .build();
 
             var response = publicClient.setTurnoverLimit(
-                    testData.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
+                    ctx.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
                     request);
 
             assertEquals(HttpStatus.CREATED, response.getStatusCode(), "fapi.set_turnover_limit.status_code");
 
             step("Sub-step NATS: получение события limit_changed_v2", () -> {
                 var subject = natsClient.buildWalletSubject(
-                        testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                        testData.registeredPlayer.getWalletData().getWalletUUID());
+                        ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                        ctx.registeredPlayer.getWalletData().getWalletUUID());
 
                 BiPredicate<NatsLimitChangedV2Payload, String> filter = (payload, typeHeader) ->
                         NatsEventType.LIMIT_CHANGED_V2.getHeaderValue().equals(typeHeader) &&
@@ -129,14 +129,14 @@ class TurnoverLimitWhenRefundTest extends BaseTest {
                                                 NatsLimitIntervalType.DAILY.getValue().equals(l.getIntervalType())
                                 );
 
-                testData.limitCreateEvent = natsClient.findMessageAsync(subject, NatsLimitChangedV2Payload.class, filter).get();
-                assertNotNull(testData.limitCreateEvent, "nats.limit_changed_v2_event");
+                ctx.limitCreateEvent = natsClient.findMessageAsync(subject, NatsLimitChangedV2Payload.class, filter).get();
+                assertNotNull(ctx.limitCreateEvent, "nats.limit_changed_v2_event");
             });
         });
 
         step("Manager API: Совершение ставки", () -> {
-            testData.betRequestBody = BetRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+            ctx.betRequestBody = BetRequestBody.builder()
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(betAmount)
                     .transactionId(UUID.randomUUID().toString())
                     .type(NatsGamblingTransactionOperation.BET)
@@ -146,75 +146,75 @@ class TurnoverLimitWhenRefundTest extends BaseTest {
 
             var response = managerClient.bet(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.BET, testData.betRequestBody),
-                    testData.betRequestBody);
+                    utils.createSignature(ApiEndpoints.BET, ctx.betRequestBody),
+                    ctx.betRequestBody);
 
             assertAll("manager_api.bet.response_validation",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.bet.status_code"),
                     () -> assertNotNull(response.getBody(), "manager_api.bet.body_not_null"),
-                    () -> assertEquals(testData.betRequestBody.getTransactionId(), response.getBody().getTransactionId(), "manager_api.bet.body.transactionId"),
-                    () -> assertEquals(0, testData.expectedPlayerBalanceAfterBet.compareTo(response.getBody().getBalance()), "manager_api.bet.body.balance")
+                    () -> assertEquals(ctx.betRequestBody.getTransactionId(), response.getBody().getTransactionId(), "manager_api.bet.body.transactionId"),
+                    () -> assertEquals(0, ctx.expectedPlayerBalanceAfterBet.compareTo(response.getBody().getBalance()), "manager_api.bet.body.balance")
             );
 
             step("Sub-step NATS: Проверка поступления события betted_from_gamble", () -> {
                 var subject = natsClient.buildWalletSubject(
-                        testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                        testData.registeredPlayer.getWalletData().getWalletUUID());
+                        ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                        ctx.registeredPlayer.getWalletData().getWalletUUID());
 
                 BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                         NatsEventType.BETTED_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                                testData.betRequestBody.getTransactionId().equals(payload.getUuid());
+                                ctx.betRequestBody.getTransactionId().equals(payload.getUuid());
 
-                testData.betEvent = natsClient.findMessageAsync(subject, NatsGamblingEventPayload.class, filter).get();
-                assertNotNull(testData.betEvent, "nats.betted_from_gamble_event");
+                ctx.betEvent = natsClient.findMessageAsync(subject, NatsGamblingEventPayload.class, filter).get();
+                assertNotNull(ctx.betEvent, "nats.betted_from_gamble_event");
             });
         });
 
         step("Manager API: Получение рефанда", () -> {
-            testData.refundRequestBody = RefundRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+            ctx.refundRequestBody = RefundRequestBody.builder()
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(refundAmount)
                     .transactionId(UUID.randomUUID().toString())
-                    .betTransactionId(testData.betRequestBody.getTransactionId())
-                    .roundId(testData.betRequestBody.getRoundId())
+                    .betTransactionId(ctx.betRequestBody.getTransactionId())
+                    .roundId(ctx.betRequestBody.getRoundId())
                     .roundClosed(true)
                     .build();
 
             var response = managerClient.refund(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.REFUND, testData.refundRequestBody),
-                    testData.refundRequestBody);
+                    utils.createSignature(ApiEndpoints.REFUND, ctx.refundRequestBody),
+                    ctx.refundRequestBody);
 
             assertAll("manager_api.refund.response_validation",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.refund.status_code"),
                     () -> assertNotNull(response.getBody(), "manager_api.refund.body_not_null"),
-                    () -> assertEquals(testData.refundRequestBody.getTransactionId(), response.getBody().getTransactionId(), "manager_api.refund.body.transactionId"),
-                    () -> assertEquals(0, testData.expectedPlayerBalanceAfterRefund.compareTo(response.getBody().getBalance()), "manager_api.refund.body.balance")
+                    () -> assertEquals(ctx.refundRequestBody.getTransactionId(), response.getBody().getTransactionId(), "manager_api.refund.body.transactionId"),
+                    () -> assertEquals(0, ctx.expectedPlayerBalanceAfterRefund.compareTo(response.getBody().getBalance()), "manager_api.refund.body.balance")
             );
 
             step("Sub-step NATS: Проверка поступления события refunded_from_gamble", () -> {
                 var subject = natsClient.buildWalletSubject(
-                        testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                        testData.registeredPlayer.getWalletData().getWalletUUID());
+                        ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                        ctx.registeredPlayer.getWalletData().getWalletUUID());
 
                 BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                         NatsEventType.REFUNDED_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                                testData.refundRequestBody.getTransactionId().equals(payload.getUuid());
+                                ctx.refundRequestBody.getTransactionId().equals(payload.getUuid());
 
-                testData.refundEvent = natsClient.findMessageAsync(subject, NatsGamblingEventPayload.class, filter).get();
-                assertNotNull(testData.refundEvent, "nats.refunded_from_gamble_event");
+                ctx.refundEvent = natsClient.findMessageAsync(subject, NatsGamblingEventPayload.class, filter).get();
+                assertNotNull(ctx.refundEvent, "nats.refunded_from_gamble_event");
             });
         });
 
         step("Redis(Wallet): Проверка изменений лимита и баланса в агрегате ПОСЛЕ РЕФАНДА", () -> {
-            var expectedSequence = (int) testData.refundEvent.getSequence();
+            var expectedSequence = (int) ctx.refundEvent.getSequence();
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
                     expectedSequence);
 
             assertAll("redis.wallet.limit_balance_after_refund",
                     () -> assertEquals(expectedSequence, aggregate.getLastSeqNumber(), "redis.wallet.last_seq_number"),
-                    () -> assertEquals(0, testData.expectedPlayerBalanceAfterRefund.compareTo(aggregate.getBalance()), "redis.wallet.balance"),
+                    () -> assertEquals(0, ctx.expectedPlayerBalanceAfterRefund.compareTo(aggregate.getBalance()), "redis.wallet.balance"),
                     () -> assertFalse(aggregate.getLimits().isEmpty(), "redis.wallet.limits_not_empty"),
                     () -> {
                         var turnoverLimitOpt = aggregate.getLimits().stream()
@@ -224,8 +224,8 @@ class TurnoverLimitWhenRefundTest extends BaseTest {
                         assertTrue(turnoverLimitOpt.isPresent(), "redis.wallet.turnover_limit_present");
                         var turnoverLimit = turnoverLimitOpt.get();
 
-                        assertEquals(0, testData.expectedRestAmountAfterRefund.compareTo(turnoverLimit.getRest()), "redis.wallet.limit.rest");
-                        assertEquals(0, testData.expectedSpentAmountAfterRefund.compareTo(turnoverLimit.getSpent()), "redis.wallet.limit.spent");
+                        assertEquals(0, ctx.expectedRestAmountAfterRefund.compareTo(turnoverLimit.getRest()), "redis.wallet.limit.rest");
+                        assertEquals(0, ctx.expectedSpentAmountAfterRefund.compareTo(turnoverLimit.getSpent()), "redis.wallet.limit.spent");
                         assertEquals(0, limitAmountBase.compareTo(turnoverLimit.getAmount()), "redis.wallet.limit.amount");
                     }
             );

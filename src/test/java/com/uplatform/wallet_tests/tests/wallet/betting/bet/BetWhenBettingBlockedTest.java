@@ -56,14 +56,14 @@ class BetWhenBettingBlockedTest extends BaseTest {
         final String platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
         final BigDecimal betAmount = new BigDecimal("10.15");
         final BigDecimal adjustmentAmount = new BigDecimal("150.00");
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("CAP API: Блокировка беттинга", () -> {
@@ -73,7 +73,7 @@ class BetWhenBettingBlockedTest extends BaseTest {
                     .build();
 
             var response = capAdminClient.updateBlockers(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId,
                     request
@@ -84,10 +84,10 @@ class BetWhenBettingBlockedTest extends BaseTest {
         step("Manager API: Совершение ставки на спорт", () -> {
             var data = MakePaymentData.builder()
                     .type(NatsBettingTransactionOperation.BET)
-                    .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
+                    .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
                     .summ(betAmount.toPlainString())
                     .couponType(NatsBettingCouponType.SINGLE)
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .build();
 
             var request = generateRequest(data);

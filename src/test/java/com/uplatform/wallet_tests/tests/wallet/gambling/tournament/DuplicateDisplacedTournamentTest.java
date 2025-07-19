@@ -74,7 +74,7 @@ class DuplicateDisplacedTournamentTest extends BaseTest {
 
         final int tournamentsToMakeToDisplace = maxGamblingCountInRedis + 1;
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             List<TournamentRequestBody> allMadeTournamentRequests = new ArrayList<>();
@@ -82,34 +82,34 @@ class DuplicateDisplacedTournamentTest extends BaseTest {
             NatsMessage<NatsGamblingEventPayload> lastTournamentNatsEvent;
             TournamentRequestBody displacedTournamentRequestToDuplicate;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("Manager API: Совершение турнирных начислений для вытеснения", () -> {
             for (int i = 0; i < tournamentsToMakeToDisplace; i++) {
                 var transactionId = UUID.randomUUID().toString();
                 if (i == tournamentsToMakeToDisplace - 1) {
-                    testData.lastMadeTournamentTransactionId = transactionId;
+                    ctx.lastMadeTournamentTransactionId = transactionId;
                 }
                 var tournamentRequestBody = TournamentRequestBody.builder()
-                        .playerId(testData.registeredPlayer.getWalletData().getWalletUUID())
-                        .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                        .playerId(ctx.registeredPlayer.getWalletData().getWalletUUID())
+                        .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                         .amount(singleTournamentAmount)
                         .transactionId(transactionId)
                         .roundId(UUID.randomUUID().toString())
-                        .gameUuid(testData.gameLaunchData.getDbGameSession().getGameUuid())
-                        .providerUuid(testData.gameLaunchData.getDbGameSession().getProviderUuid())
+                        .gameUuid(ctx.gameLaunchData.getDbGameSession().getGameUuid())
+                        .providerUuid(ctx.gameLaunchData.getDbGameSession().getProviderUuid())
                         .build();
-                testData.allMadeTournamentRequests.add(tournamentRequestBody);
+                ctx.allMadeTournamentRequests.add(tournamentRequestBody);
 
                 var currentTournamentNumber = i + 1;
                 step("Совершение турнирного начисления #" + currentTournamentNumber + " (ID: " + transactionId + ")", () -> {
@@ -125,50 +125,50 @@ class DuplicateDisplacedTournamentTest extends BaseTest {
 
         step("NATS: Ожидание NATS-события tournament_won_from_gamble для последнего начисления", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.TOURNAMENT_WON_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                            testData.lastMadeTournamentTransactionId.equals(payload.getUuid());
+                            ctx.lastMadeTournamentTransactionId.equals(payload.getUuid());
 
-            testData.lastTournamentNatsEvent = natsClient.findMessageAsync(
+            ctx.lastTournamentNatsEvent = natsClient.findMessageAsync(
                     subject,
                     NatsGamblingEventPayload.class,
                     filter).get();
 
-            assertNotNull(testData.lastTournamentNatsEvent, "nats.tournament_won_from_gamble_event");
+            assertNotNull(ctx.lastTournamentNatsEvent, "nats.tournament_won_from_gamble_event");
         });
 
         step("Redis: Определение вытесненного турнирного начисления", () -> {
             WalletFullData aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.lastTournamentNatsEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.lastTournamentNatsEvent.getSequence());
 
             var gamblingTransactionsInRedis = aggregate.getGambling();
             var transactionIdsCurrentlyInRedis = gamblingTransactionsInRedis.keySet();
 
-            var displacedTransactionIds = testData.allMadeTournamentRequests.stream()
+            var displacedTransactionIds = ctx.allMadeTournamentRequests.stream()
                     .map(TournamentRequestBody::getTransactionId).collect(Collectors.toCollection(HashSet::new));
             displacedTransactionIds.removeAll(transactionIdsCurrentlyInRedis);
             assertEquals(1, displacedTransactionIds.size(), "redis.displaced_transaction.count");
             var displacedTxId = displacedTransactionIds.iterator().next();
 
-            testData.displacedTournamentRequestToDuplicate = testData.allMadeTournamentRequests.stream()
+            ctx.displacedTournamentRequestToDuplicate = ctx.allMadeTournamentRequests.stream()
                     .filter(req -> req.getTransactionId().equals(displacedTxId))
                     .findFirst()
                     .orElseThrow(() -> new AssertionError("test.displaced_request.not_found"));
         });
 
-        step("Manager API: Попытка дублирования вытесненного турнирного начисления (ID: " + testData.displacedTournamentRequestToDuplicate.getTransactionId() + ") и проверка ошибки", () -> {
+        step("Manager API: Попытка дублирования вытесненного турнирного начисления (ID: " + ctx.displacedTournamentRequestToDuplicate.getTransactionId() + ") и проверка ошибки", () -> {
             var duplicateTournamentAttemptRequest = TournamentRequestBody.builder()
-                    .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
-                    .amount(testData.displacedTournamentRequestToDuplicate.getAmount())
-                    .transactionId(testData.displacedTournamentRequestToDuplicate.getTransactionId())
-                    .roundId(testData.displacedTournamentRequestToDuplicate.getRoundId())
-                    .gameUuid(testData.displacedTournamentRequestToDuplicate.getGameUuid())
-                    .providerUuid(testData.displacedTournamentRequestToDuplicate.getProviderUuid())
+                    .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                    .amount(ctx.displacedTournamentRequestToDuplicate.getAmount())
+                    .transactionId(ctx.displacedTournamentRequestToDuplicate.getTransactionId())
+                    .roundId(ctx.displacedTournamentRequestToDuplicate.getRoundId())
+                    .gameUuid(ctx.displacedTournamentRequestToDuplicate.getGameUuid())
+                    .providerUuid(ctx.displacedTournamentRequestToDuplicate.getProviderUuid())
                     .build();
 
             var duplicateResponse = managerClient.tournament(

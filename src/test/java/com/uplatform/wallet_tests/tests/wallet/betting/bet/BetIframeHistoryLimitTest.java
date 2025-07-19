@@ -70,35 +70,35 @@ class BetIframeHistoryLimitTest extends BaseTest {
         final int maxIframeCountInRedis = configProvider.getEnvironmentConfig().getRedis().getAggregate().getMaxIframeCount();
         final int currentTransactionCountToMake = maxIframeCountInRedis + 1;
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             Long lastBetId;
             NatsMessage<NatsBettingEventPayload> lastBetEvent;
             BigDecimal currentBalance;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            testData.currentBalance = testData.registeredPlayer.getWalletData().getBalance();
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            ctx.currentBalance = ctx.registeredPlayer.getWalletData().getBalance();
 
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Manager API: Совершение iFrame ставок", () -> {
             for (int i = 0; i < currentTransactionCountToMake; i++) {
                 var betInputData = MakePaymentData.builder()
                         .type(NatsBettingTransactionOperation.BET)
-                        .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
+                        .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
                         .summ(singleBetAmount.toPlainString())
                         .couponType(NatsBettingCouponType.SINGLE)
-                        .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                        .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                         .build();
 
                 var betRequestBody = MakePaymentRequestGenerator.generateRequest(betInputData);
 
                 if (i == currentTransactionCountToMake - 1) {
-                    testData.lastBetId = betRequestBody.getBetId();
+                    ctx.lastBetId = betRequestBody.getBetId();
                 }
 
                 var currentBetNumber = i + 1;
@@ -114,38 +114,38 @@ class BetIframeHistoryLimitTest extends BaseTest {
                             () -> assertEquals(SUCCESS.getDescription(), response.getBody().getDescription(), "manager_api.body.description")
                     );
 
-                    testData.currentBalance = testData.currentBalance.subtract(singleBetAmount);
+                    ctx.currentBalance = ctx.currentBalance.subtract(singleBetAmount);
                 });
             }
         });
 
         step("NATS: Ожидание NATS-события betted_from_iframe для последней ставки", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsBettingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.BETTED_FROM_IFRAME.getHeaderValue().equals(typeHeader) &&
-                            Objects.equals(testData.lastBetId, payload.getBetId());
+                            Objects.equals(ctx.lastBetId, payload.getBetId());
 
-            testData.lastBetEvent = natsClient.findMessageAsync(
+            ctx.lastBetEvent = natsClient.findMessageAsync(
                     subject,
                     NatsBettingEventPayload.class,
                     filter).get();
 
-            assertNotNull(testData.lastBetEvent, "nats.betted_from_iframe");
+            assertNotNull(ctx.lastBetEvent, "nats.betted_from_iframe");
         });
 
         step("Redis(Wallet): Получение и проверка данных кошелька (лимит iFrame ставок)", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.lastBetEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.lastBetEvent.getSequence());
 
             var iFrameRecordsInRedis = aggregate.getIFrameRecords();
 
             assertAll("Проверка данных iFrame в Redis",
                     () -> assertEquals(maxIframeCountInRedis - 1, iFrameRecordsInRedis.size(),"redis.wallet.gambling.count"),
-                    () -> assertEquals(0, testData.currentBalance.compareTo(aggregate.getBalance()),"redis.wallet.balance")
+                    () -> assertEquals(0, ctx.currentBalance.compareTo(aggregate.getBalance()),"redis.wallet.balance")
             );
         });
     }
