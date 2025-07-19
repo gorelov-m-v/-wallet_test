@@ -8,8 +8,4 @@ import lombok.Data;
 public class CheckResult {
     private boolean success;
     private String message;
-
-    public boolean isSuccess() {
-        return success;
-    }
 }
