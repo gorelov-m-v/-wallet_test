@@ -34,7 +34,7 @@ public class RedisRetryHelper {
         RedisAggregateConfig aggregateConfig = Optional.ofNullable(configProvider)
                 .map(EnvironmentConfigurationProvider::getEnvironmentConfig)
                 .map(com.uplatform.wallet_tests.config.EnvironmentConfig::getRedis)
-                .map(com.uplatform.wallet_tests.config.RedisConfig::getAggregate)
+                .map(com.uplatform.wallet_tests.config.RedisSettings::getAggregate)
                 .orElseThrow(() -> new IllegalStateException(
                         "RedisAggregateConfig not found in EnvironmentConfigurationProvider. Cannot initialize RedisRetryHelper."));
 
