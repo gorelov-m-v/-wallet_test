@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.ReadContext;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,7 @@ public class MessageFinder {
 
     private final ObjectMapper objectMapper;
     private final KafkaAllureReporter allureReporter;
+    private final ConcurrentMap<String, JsonPath> pathCache = new ConcurrentHashMap<>();
 
     @Autowired
     public MessageFinder(ObjectMapper objectMapper, KafkaAllureReporter allureReporter) {
@@ -109,10 +112,12 @@ public class MessageFinder {
         }
 
         for (Map.Entry<String, String> entry : filterCriteria.entrySet()) {
-            String path = entry.getKey().startsWith("$") ? entry.getKey() : "$." + entry.getKey();
+            String rawPath = entry.getKey();
+            String normalizedPath = rawPath.startsWith("$") ? rawPath : "$." + rawPath;
+            JsonPath compiledPath = pathCache.computeIfAbsent(normalizedPath, JsonPath::compile);
             Object actual;
             try {
-                actual = ctx.read(path);
+                actual = ctx.read(compiledPath);
             } catch (Exception e) {
                 return false;
             }
