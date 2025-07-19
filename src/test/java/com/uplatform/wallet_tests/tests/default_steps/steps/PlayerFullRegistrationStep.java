@@ -23,7 +23,6 @@ import com.uplatform.wallet_tests.api.kafka.dto.PlayerAccountMessage;
 import com.uplatform.wallet_tests.api.nats.dto.enums.NatsLimitIntervalType;
 import com.uplatform.wallet_tests.api.redis.client.PlayerRedisClient;
 import com.uplatform.wallet_tests.api.redis.client.WalletRedisClient;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.uplatform.wallet_tests.api.redis.model.WalletData;
 import com.uplatform.wallet_tests.api.redis.model.WalletFilterCriteria;
 import com.uplatform.wallet_tests.api.redis.model.WalletFullData;
@@ -301,8 +300,7 @@ public class PlayerFullRegistrationStep {
 
         step("Redis (Wallet): Получение и проверка полных данных кошелька", () -> {
             ctx.updatedWalletData = this.walletRedisClient.getWithRetry(
-                    ctx.playerWalletData.getWalletUUID(),
-                    new TypeReference<WalletFullData>() {});
+                    ctx.playerWalletData.getWalletUUID());
             assertNotNull(ctx.updatedWalletData, "redis.wallet.full_data_not_found");
             assertNotNull(ctx.updatedWalletData.getPlayerUUID(), "redis.wallet.player_uuid");
         });

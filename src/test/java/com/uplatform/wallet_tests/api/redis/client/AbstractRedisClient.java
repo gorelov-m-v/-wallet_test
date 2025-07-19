@@ -1,6 +1,5 @@
 package com.uplatform.wallet_tests.api.redis.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.uplatform.wallet_tests.api.redis.exception.RedisClientException;
 import com.uplatform.wallet_tests.api.redis.model.WalletFilterCriteria;
 import lombok.extern.slf4j.Slf4j;
@@ -13,23 +12,28 @@ import java.util.StringJoiner;
 import java.util.function.BiFunction;
 
 import com.uplatform.wallet_tests.api.attachment.AllureAttachmentService;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 @Slf4j
-public abstract class AbstractRedisClient {
+
+public abstract class AbstractRedisClient<T> {
 
     protected final String instanceName;
     protected final RedisTemplate<String, String> redisTemplate;
     protected final RedisRetryHelper retryHelper;
     protected final AllureAttachmentService attachmentService;
+    private final TypeReference<T> typeReference;
 
     protected AbstractRedisClient(String instanceName,
                                   RedisTemplate<String, String> redisTemplate,
                                   RedisRetryHelper retryHelper,
-                                  AllureAttachmentService attachmentService) {
+                                  AllureAttachmentService attachmentService,
+                                  TypeReference<T> typeReference) {
         this.instanceName = instanceName;
         this.redisTemplate = redisTemplate;
         this.retryHelper = retryHelper;
         this.attachmentService = attachmentService;
+        this.typeReference = typeReference;
         log.info("RedisClient initialized for instance: {}", this.instanceName);
         checkConnection();
     }
@@ -60,16 +64,18 @@ public abstract class AbstractRedisClient {
         }
     }
 
-    public <T> T getWithRetry(String key, TypeReference<T> valueTypeRef) {
+    public T getWithRetry(String key) {
         if (key == null) {
             String errorMsg = String.format("[%s] Cannot get value: key is null.", instanceName);
-            log.error(errorMsg); attachmentService.attachText("Redis Error", errorMsg); throw new RedisClientException(errorMsg);
+            log.error(errorMsg);
+            attachmentService.attachText("Redis Error", errorMsg);
+            throw new RedisClientException(errorMsg);
         }
         Optional<T> result = retryHelper.waitForValue(
                 instanceName,
                 key,
-                valueTypeRef.getType(),
-                valueTypeRef,
+                typeReference.getType(),
+                typeReference,
                 (inst, k) -> getValue(k),
                 null);
         return result.orElseThrow(() -> new RedisClientException(String.format(
@@ -79,16 +85,18 @@ public abstract class AbstractRedisClient {
                 retryHelper.getRetryAttempts())));
     }
 
-    public <T> T getWithCheck(String key, TypeReference<T> valueTypeRef, BiFunction<T, String, CheckResult> checkFunc) {
+    public T getWithCheck(String key, BiFunction<T, String, CheckResult> checkFunc) {
         if (key == null) {
             String errorMsg = String.format("[%s] Cannot check value: key is null.", instanceName);
-            log.error(errorMsg); attachmentService.attachText("Redis Error", errorMsg); throw new RedisClientException(errorMsg);
+            log.error(errorMsg);
+            attachmentService.attachText("Redis Error", errorMsg);
+            throw new RedisClientException(errorMsg);
         }
         Optional<T> result = retryHelper.waitForValue(
                 instanceName,
                 key,
-                valueTypeRef.getType(),
-                valueTypeRef,
+                typeReference.getType(),
+                typeReference,
                 (inst, k) -> getValue(k),
                 checkFunc);
         return result.orElseThrow(() -> new RedisClientException(String.format(

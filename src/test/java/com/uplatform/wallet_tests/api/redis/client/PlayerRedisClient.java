@@ -1,10 +1,10 @@
 package com.uplatform.wallet_tests.api.redis.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.uplatform.wallet_tests.api.redis.exception.RedisClientException;
 import com.uplatform.wallet_tests.api.redis.model.WalletData;
 import com.uplatform.wallet_tests.api.redis.model.WalletFilterCriteria;
 import com.uplatform.wallet_tests.api.attachment.AllureAttachmentService;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -16,12 +16,13 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 
 @Slf4j
-public class PlayerRedisClient extends AbstractRedisClient {
+public class PlayerRedisClient extends AbstractRedisClient<Map<String, WalletData>> {
 
     public PlayerRedisClient(@Qualifier("playerRedisTemplate") RedisTemplate<String, String> redisTemplate,
                              RedisRetryHelper retryHelper,
                              AllureAttachmentService attachmentService) {
-        super("PLAYER", redisTemplate, retryHelper, attachmentService);
+        super("PLAYER", redisTemplate, retryHelper, attachmentService,
+                new TypeReference<Map<String, WalletData>>() {});
     }
 
     private boolean matchesCriteria(WalletData wallet, WalletFilterCriteria criteria) {
@@ -37,7 +38,6 @@ public class PlayerRedisClient extends AbstractRedisClient {
         if (playerId == null) { throw new RedisClientException("[PLAYER] Cannot get wallet: playerId is null."); }
         if (criteria == null) { throw new RedisClientException("[PLAYER] Cannot get wallet: criteria is null."); }
 
-        TypeReference<Map<String, WalletData>> mapTypeRef = new TypeReference<>() {};
         String criteriaDesc = describeCriteria(criteria);
 
         BiFunction<Map<String, WalletData>, String, CheckResult> checkMapAndCriteria = (walletsMap, rawJson) -> {
@@ -52,7 +52,7 @@ public class PlayerRedisClient extends AbstractRedisClient {
             }
         };
 
-        Map<String, WalletData> walletsMapResult = getWithCheck(playerId, mapTypeRef, checkMapAndCriteria);
+        Map<String, WalletData> walletsMapResult = getWithCheck(playerId, checkMapAndCriteria);
 
         Optional<WalletData> foundWallet = walletsMapResult.values().stream()
                 .filter(wallet -> matchesCriteria(wallet, criteria))
