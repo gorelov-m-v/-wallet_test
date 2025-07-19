@@ -274,17 +274,17 @@ class BalanceAdjustmentNegativeParametrizedTest extends BaseParameterizedTest {
             Integer expectedStatus,
             String expectedMessage)
     {
-        final class TestData {
+        final class TestContext {
             CreateBalanceAdjustmentRequest request;
             String playerUuid;
             String authHeader;
             String nodeId;
         }
 
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Подготовка параметров запроса", () -> {
-            testData.request = CreateBalanceAdjustmentRequest.builder()
+            ctx.request = CreateBalanceAdjustmentRequest.builder()
                     .currency(registeredPlayer.getWalletData().getCurrency())
                     .amount(validAdjustmentAmount)
                     .reason(ReasonType.MALFUNCTION)
@@ -292,17 +292,17 @@ class BalanceAdjustmentNegativeParametrizedTest extends BaseParameterizedTest {
                     .direction(DirectionType.INCREASE)
                     .build();
 
-            requestModifier.accept(testData.request);
+            requestModifier.accept(ctx.request);
 
-            testData.playerUuid = (customPlayerUuid != null)
+            ctx.playerUuid = (customPlayerUuid != null)
                     ? customPlayerUuid
                     : registeredPlayer.getWalletData().getPlayerUUID();
 
-            testData.authHeader = (customAuthHeader != null)
+            ctx.authHeader = (customAuthHeader != null)
                     ? customAuthHeader
                     : utils.getAuthorizationHeader();
 
-            testData.nodeId = (customNodeId != null)
+            ctx.nodeId = (customNodeId != null)
                     ? customNodeId
                     : platformNodeId;
         });
@@ -311,11 +311,11 @@ class BalanceAdjustmentNegativeParametrizedTest extends BaseParameterizedTest {
             var exception = assertThrows(
                     FeignException.class,
                     () -> capAdminClient.createBalanceAdjustment(
-                            testData.playerUuid,
-                            testData.authHeader,
-                            testData.nodeId,
+                            ctx.playerUuid,
+                            ctx.authHeader,
+                            ctx.nodeId,
                             "6dfe249e-e967-477b-8a42-83efe85c7c3a",
-                            testData.request
+                            ctx.request
                     ),
                     "cap_api.create_balance_adjustment.expected_exception"
             );

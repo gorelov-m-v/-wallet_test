@@ -80,41 +80,41 @@ class TournamentGamblingHistoryLimitTest extends BaseTest {
 
         final int operationsToMake = maxGamblingCountInRedis + 1;
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             String lastTransactionId;
             NatsMessage<NatsGamblingEventPayload> lastTournamentEvent;
             BigDecimal currentBalance;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя с нулевым балансом", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialBalance);
-            testData.currentBalance = testData.registeredPlayer.getWalletData().getBalance();
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialBalance);
+            ctx.currentBalance = ctx.registeredPlayer.getWalletData().getBalance();
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step(String.format("Manager API: Совершение %d турнирных выигрышей", operationsToMake), () -> {
             for (int i = 0; i < operationsToMake; i++) {
                 var transactionId = UUID.randomUUID().toString();
                 if (i == operationsToMake - 1) {
-                    testData.lastTransactionId = transactionId;
+                    ctx.lastTransactionId = transactionId;
                 }
 
                 var tournamentRequestBody = TournamentRequestBody.builder()
                         .amount(operationAmount)
-                        .playerId(testData.registeredPlayer.getWalletData().getWalletUUID())
-                        .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                        .playerId(ctx.registeredPlayer.getWalletData().getWalletUUID())
+                        .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                         .transactionId(transactionId)
-                        .gameUuid(testData.gameLaunchData.getDbGameSession().getGameUuid())
+                        .gameUuid(ctx.gameLaunchData.getDbGameSession().getGameUuid())
                         .roundId(UUID.randomUUID().toString())
-                        .providerUuid(testData.gameLaunchData.getDbGameSession().getProviderUuid())
+                        .providerUuid(ctx.gameLaunchData.getDbGameSession().getProviderUuid())
                         .build();
 
                 var currentOperationNumber = i + 1;
@@ -126,46 +126,46 @@ class TournamentGamblingHistoryLimitTest extends BaseTest {
                             utils.createSignature(ApiEndpoints.TOURNAMENT, tournamentRequestBody),
                             tournamentRequestBody);
 
-                    testData.currentBalance = testData.currentBalance.add(operationAmount);
+                    ctx.currentBalance = ctx.currentBalance.add(operationAmount);
 
                     assertAll(String.format("Проверка ответа API для турнирного выигрыша #%d", currentOperationNumber),
                             () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code"),
                             () -> assertNotNull(response.getBody(), "manager_api.body_not_null"),
                             () -> assertEquals(currentTxId, response.getBody().getTransactionId(), "manager_api.body.transactionId"),
-                            () -> assertEquals(0, testData.currentBalance.compareTo(response.getBody().getBalance()), "manager_api.body.balance")
+                            () -> assertEquals(0, ctx.currentBalance.compareTo(response.getBody().getBalance()), "manager_api.body.balance")
                     );
                 });
             }
         });
 
-        step(String.format("NATS: Ожидание NATS-события tournament_won_from_gamble для последней операции (ID: %s)", testData.lastTransactionId), () -> {
+        step(String.format("NATS: Ожидание NATS-события tournament_won_from_gamble для последней операции (ID: %s)", ctx.lastTransactionId), () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.TOURNAMENT_WON_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                            testData.lastTransactionId.equals(payload.getUuid());
+                            ctx.lastTransactionId.equals(payload.getUuid());
 
-            testData.lastTournamentEvent = natsClient.findMessageAsync(
+            ctx.lastTournamentEvent = natsClient.findMessageAsync(
                     subject,
                     NatsGamblingEventPayload.class,
                     filter).get();
 
-            assertNotNull(testData.lastTournamentEvent, "nats.tournament_won_from_gamble");
-            assertEquals(NatsGamblingTransactionOperation.TOURNAMENT, testData.lastTournamentEvent.getPayload().getOperation(), "nats.payload.operation_type");
+            assertNotNull(ctx.lastTournamentEvent, "nats.tournament_won_from_gamble");
+            assertEquals(NatsGamblingTransactionOperation.TOURNAMENT, ctx.lastTournamentEvent.getPayload().getOperation(), "nats.payload.operation_type");
         });
 
         step("Redis(Wallet): Получение и проверка данных кошелька после серии турнирных выигрышей", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.lastTournamentEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.lastTournamentEvent.getSequence());
             var gamblingTransactionsInRedis = aggregate.getGambling();
 
             assertAll("Проверка данных в Redis",
                     () -> assertEquals(maxGamblingCountInRedis, gamblingTransactionsInRedis.size(), "redis.wallet.gambling.count"),
-                    () -> assertEquals(0, testData.currentBalance.compareTo(aggregate.getBalance()), "redis.wallet.balance"),
-                    () -> assertEquals((int) testData.lastTournamentEvent.getSequence(), aggregate.getLastSeqNumber(), "redis.wallet.last_seq_number")
+                    () -> assertEquals(0, ctx.currentBalance.compareTo(aggregate.getBalance()), "redis.wallet.balance"),
+                    () -> assertEquals((int) ctx.lastTournamentEvent.getSequence(), aggregate.getLastSeqNumber(), "redis.wallet.last_seq_number")
             );
         });
     }

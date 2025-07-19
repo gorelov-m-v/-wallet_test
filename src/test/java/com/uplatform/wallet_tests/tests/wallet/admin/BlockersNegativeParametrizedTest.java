@@ -162,32 +162,32 @@ class BlockersNegativeParametrizedTest extends BaseParameterizedTest {
             String expectedMessage,
             Map<String, List<String>> expectedFieldErrors)
     {
-        final class TestData {
+        final class TestContext {
             UpdateBlockersRequest request;
             String playerUuid;
             String authHeader;
             String nodeId;
         }
 
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Подготовка параметров запроса", () -> {
-            testData.request = UpdateBlockersRequest.builder()
+            ctx.request = UpdateBlockersRequest.builder()
                     .gamblingEnabled(true)
                     .bettingEnabled(true)
                     .build();
 
-            requestModifier.accept(testData.request);
+            requestModifier.accept(ctx.request);
 
-            testData.playerUuid = (customPlayerUuid != null)
+            ctx.playerUuid = (customPlayerUuid != null)
                     ? customPlayerUuid
                     : registeredPlayer.getWalletData().getPlayerUUID();
 
-            testData.authHeader = (customAuthHeader != null)
+            ctx.authHeader = (customAuthHeader != null)
                     ? customAuthHeader
                     : utils.getAuthorizationHeader();
 
-            testData.nodeId = (customNodeId != null)
+            ctx.nodeId = (customNodeId != null)
                     ? customNodeId
                     : platformNodeId;
         });
@@ -196,10 +196,10 @@ class BlockersNegativeParametrizedTest extends BaseParameterizedTest {
             var exception = assertThrows(
                     FeignException.class,
                     () -> capAdminClient.updateBlockers(
-                            testData.playerUuid,
-                            testData.authHeader,
-                            testData.nodeId,
-                            testData.request
+                            ctx.playerUuid,
+                            ctx.authHeader,
+                            ctx.nodeId,
+                            ctx.request
                     ),
                     "cap_api.update_blockers.expected_exception"
             );

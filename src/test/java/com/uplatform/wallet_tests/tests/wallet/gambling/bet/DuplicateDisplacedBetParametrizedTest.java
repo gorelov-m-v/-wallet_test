@@ -91,7 +91,7 @@ class DuplicateDisplacedBetParametrizedTest extends BaseParameterizedTest {
 
         final int betsToMakeToDisplace = maxGamblingCountInRedis + 1;
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             List<BetRequestBody> allMadeBetRequests = new ArrayList<>();
@@ -99,33 +99,33 @@ class DuplicateDisplacedBetParametrizedTest extends BaseParameterizedTest {
             NatsMessage<NatsGamblingEventPayload> lastBetNatsEvent;
             BetRequestBody displacedBetRequestToDuplicate;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("Manager API: Совершение ставок для вытеснения (тип: " + operationParam + ", сумма: " + betAmountParam + ")", () -> {
             for (int i = 0; i < betsToMakeToDisplace; i++) {
                 var transactionId = UUID.randomUUID().toString();
                 if (i == betsToMakeToDisplace - 1) {
-                    testData.lastMadeBetTransactionId = transactionId;
+                    ctx.lastMadeBetTransactionId = transactionId;
                 }
                 var betRequestBody = BetRequestBody.builder()
-                        .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                        .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                         .amount(betAmountParam)
                         .transactionId(transactionId)
                         .type(operationParam)
                         .roundId(UUID.randomUUID().toString())
                         .roundClosed(false)
                         .build();
-                testData.allMadeBetRequests.add(betRequestBody);
+                ctx.allMadeBetRequests.add(betRequestBody);
 
                 var currentBetNumber = i + 1;
                 step("Совершение ставки #" + currentBetNumber + " (ID: " + transactionId + ")", () -> {
@@ -140,27 +140,27 @@ class DuplicateDisplacedBetParametrizedTest extends BaseParameterizedTest {
 
         step("NATS: Ожидание NATS-события betted_from_gamble для последней ставки", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
             BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.BETTED_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                            testData.lastMadeBetTransactionId.equals(payload.getUuid());
+                            ctx.lastMadeBetTransactionId.equals(payload.getUuid());
 
-            testData.lastBetNatsEvent = natsClient.findMessageAsync(
+            ctx.lastBetNatsEvent = natsClient.findMessageAsync(
                     subject,
                     NatsGamblingEventPayload.class,
                     filter).get();
 
-            assertNotNull(testData.lastBetNatsEvent, "nats.betted_from_gamble");
+            assertNotNull(ctx.lastBetNatsEvent, "nats.betted_from_gamble");
         });
 
         step("Redis: Определение вытесненной ставки", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.lastBetNatsEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.lastBetNatsEvent.getSequence());
             var transactionIdsCurrentlyInRedis = aggregate.getGambling().keySet();
 
-            var allMadeTransactionIds = testData.allMadeBetRequests.stream()
+            var allMadeTransactionIds = ctx.allMadeBetRequests.stream()
                     .map(BetRequestBody::getTransactionId)
                     .collect(Collectors.toCollection(HashSet::new));
 
@@ -168,7 +168,7 @@ class DuplicateDisplacedBetParametrizedTest extends BaseParameterizedTest {
             assertEquals(1, allMadeTransactionIds.size(), "redis.displaced_transaction.count");
             var displacedTxId = allMadeTransactionIds.iterator().next();
 
-            testData.displacedBetRequestToDuplicate = testData.allMadeBetRequests.stream()
+            ctx.displacedBetRequestToDuplicate = ctx.allMadeBetRequests.stream()
                     .filter(betReq -> betReq.getTransactionId().equals(displacedTxId))
                     .findFirst()
                     .orElseThrow(() -> new AssertionError("test.displaced_request.not_found"));
@@ -177,8 +177,8 @@ class DuplicateDisplacedBetParametrizedTest extends BaseParameterizedTest {
         step("Manager API: Попытка дублирования вытесненной ставки", () -> {
             var duplicateResponse = managerClient.bet(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.BET, testData.displacedBetRequestToDuplicate),
-                    testData.displacedBetRequestToDuplicate
+                    utils.createSignature(ApiEndpoints.BET, ctx.displacedBetRequestToDuplicate),
+                    ctx.displacedBetRequestToDuplicate
             );
 
             var responseBody = duplicateResponse.getBody();
@@ -186,7 +186,7 @@ class DuplicateDisplacedBetParametrizedTest extends BaseParameterizedTest {
             assertAll("manager_api.duplicate_displaced_bet.response",
                     () -> assertEquals(HttpStatus.OK, duplicateResponse.getStatusCode(), "manager_api.status_code"),
                     () -> assertNotNull(responseBody, "manager_api.response_body"),
-                    () -> assertEquals(testData.displacedBetRequestToDuplicate.getTransactionId(), responseBody.getTransactionId(), "manager_api.transaction_id"),
+                    () -> assertEquals(ctx.displacedBetRequestToDuplicate.getTransactionId(), responseBody.getTransactionId(), "manager_api.transaction_id"),
                     () -> assertEquals(0, BigDecimal.ZERO.compareTo(responseBody.getBalance()), "manager_api.balance")
             );
         });

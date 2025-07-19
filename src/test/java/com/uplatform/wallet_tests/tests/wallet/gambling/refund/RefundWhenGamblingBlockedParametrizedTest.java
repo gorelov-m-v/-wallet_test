@@ -102,28 +102,28 @@ class RefundWhenGamblingBlockedParametrizedTest extends BaseParameterizedTest {
         final String platformNodeId = configProvider.getEnvironmentConfig().getPlatform().getNodeId();
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             BetRequestBody betRequestBody;
             BigDecimal expectedBalanceAfterRefund;
         }
-        final TestData testData = new TestData();
-        testData.expectedBalanceAfterRefund = initialAdjustmentAmount;
+        final TestContext ctx = new TestContext();
+        ctx.expectedBalanceAfterRefund = initialAdjustmentAmount;
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.game_session");
         });
 
         step("Manager API: Совершение исходной транзакции (ставки)", () -> {
-            testData.betRequestBody = BetRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+            ctx.betRequestBody = BetRequestBody.builder()
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(betAmountParam)
                     .transactionId(UUID.randomUUID().toString())
                     .type(typeParam)
@@ -133,8 +133,8 @@ class RefundWhenGamblingBlockedParametrizedTest extends BaseParameterizedTest {
 
             var response = managerClient.bet(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.BET, testData.betRequestBody),
-                    testData.betRequestBody);
+                    utils.createSignature(ApiEndpoints.BET, ctx.betRequestBody),
+                    ctx.betRequestBody);
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.bet.status_code");
         });
@@ -146,7 +146,7 @@ class RefundWhenGamblingBlockedParametrizedTest extends BaseParameterizedTest {
                     .build();
 
             var response = capAdminClient.updateBlockers(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
                     utils.getAuthorizationHeader(),
                     platformNodeId,
                     request
@@ -156,15 +156,15 @@ class RefundWhenGamblingBlockedParametrizedTest extends BaseParameterizedTest {
 
         step("Manager API: Выполнение рефанда транзакции", () -> {
             var refundRequestBody = com.uplatform.wallet_tests.api.http.manager.dto.gambling.RefundRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(betAmountParam)
                     .transactionId(UUID.randomUUID().toString())
-                    .betTransactionId(testData.betRequestBody.getTransactionId())
-                    .roundId(testData.betRequestBody.getRoundId())
+                    .betTransactionId(ctx.betRequestBody.getTransactionId())
+                    .roundId(ctx.betRequestBody.getRoundId())
                     .roundClosed(true)
-                    .playerId(testData.registeredPlayer.getWalletData().getWalletUUID())
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
-                    .gameUuid(testData.gameLaunchData.getDbGameSession().getGameUuid())
+                    .playerId(ctx.registeredPlayer.getWalletData().getWalletUUID())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
+                    .gameUuid(ctx.gameLaunchData.getDbGameSession().getGameUuid())
                     .build();
 
             var response = managerClient.refund(
@@ -176,7 +176,7 @@ class RefundWhenGamblingBlockedParametrizedTest extends BaseParameterizedTest {
             assertAll("Проверка статус-кода и тела ответа при рефанде",
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.refund.status_code"),
                     () -> assertEquals(refundRequestBody.getTransactionId(), response.getBody().getTransactionId(), "manager_api.refund.transaction_id"),
-                    () -> assertEquals(0, testData.expectedBalanceAfterRefund.compareTo(response.getBody().getBalance()), "manager_api.refund.balance")
+                    () -> assertEquals(0, ctx.expectedBalanceAfterRefund.compareTo(response.getBody().getBalance()), "manager_api.refund.balance")
             );
         });
     }

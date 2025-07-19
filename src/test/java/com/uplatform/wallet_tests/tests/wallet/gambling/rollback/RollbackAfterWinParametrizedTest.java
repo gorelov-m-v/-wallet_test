@@ -121,26 +121,26 @@ class RollbackAfterWinParametrizedTest extends BaseParameterizedTest {
     void testRollbackForWinTransactionReturnsError(BigDecimal winAmountParam, NatsGamblingTransactionOperation winOperationTypeParam) {
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             WinRequestBody winRequestBody;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.game_session");
         });
 
         step("Manager API: Совершение исходной транзакции выигрыша", () -> {
-            testData.winRequestBody = WinRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+            ctx.winRequestBody = WinRequestBody.builder()
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(winAmountParam)
                     .transactionId(UUID.randomUUID().toString())
                     .type(winOperationTypeParam)
@@ -150,22 +150,22 @@ class RollbackAfterWinParametrizedTest extends BaseParameterizedTest {
 
             var response = managerClient.win(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.WIN, testData.winRequestBody),
-                    testData.winRequestBody);
+                    utils.createSignature(ApiEndpoints.WIN, ctx.winRequestBody),
+                    ctx.winRequestBody);
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.win.status_code");
         });
 
         step("Manager API: Попытка выполнения роллбэка для транзакции выигрыша", () -> {
             var rollbackRequestBody = RollbackRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(winAmountParam)
                     .transactionId(UUID.randomUUID().toString())
-                    .rollbackTransactionId(testData.winRequestBody.getTransactionId())
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
-                    .playerId(testData.registeredPlayer.getWalletData().getWalletUUID())
-                    .gameUuid(testData.gameLaunchData.getDbGameSession().getGameUuid())
-                    .roundId(testData.winRequestBody.getRoundId())
+                    .rollbackTransactionId(ctx.winRequestBody.getTransactionId())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
+                    .playerId(ctx.registeredPlayer.getWalletData().getWalletUUID())
+                    .gameUuid(ctx.gameLaunchData.getDbGameSession().getGameUuid())
+                    .roundId(ctx.winRequestBody.getRoundId())
                     .roundClosed(true)
                     .build();
 

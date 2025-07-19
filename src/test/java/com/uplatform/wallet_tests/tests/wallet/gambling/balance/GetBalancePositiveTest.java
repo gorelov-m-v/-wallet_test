@@ -28,38 +28,38 @@ class GetBalancePositiveTest extends BaseTest {
     void shouldRegisterAdjustCreateSessionAndGetBalance() {
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             BigDecimal initialAdjustmentAmount;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
-        testData.initialAdjustmentAmount = new BigDecimal("250.50");
+        ctx.initialAdjustmentAmount = new BigDecimal("250.50");
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(testData.initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(ctx.initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.game_session");
         });
 
         step("Manager API: Запрос баланса пользователя через /balance", () -> {
-            var sessionToken = testData.gameLaunchData.getDbGameSession().getGameSessionUuid();
+            var sessionToken = ctx.gameLaunchData.getDbGameSession().getGameSessionUuid();
             var queryString = "sessionToken=" + sessionToken;
 
             var response = managerClient.getBalance(
                     casinoId,
                     utils.createSignature(ApiEndpoints.BALANCE, queryString, null),
-                    testData.gameLaunchData.getDbGameSession().getGameSessionUuid()
+                    ctx.gameLaunchData.getDbGameSession().getGameSessionUuid()
             );
 
             assertAll(
                     () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.balance.status_code"),
-                    () -> assertEquals(0, testData.initialAdjustmentAmount.compareTo(response.getBody().getBalance()), "manager_api.balance.balance")
+                    () -> assertEquals(0, ctx.initialAdjustmentAmount.compareTo(response.getBody().getBalance()), "manager_api.balance.balance")
             );
         });
     }

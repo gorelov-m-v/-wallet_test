@@ -63,65 +63,65 @@ class DuplicateSequentialTournamentWinTest extends BaseTest {
     void testDuplicateSequentialTournamentWinExpectingValidationError()  {
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             TournamentRequestBody firstTournamentRequest;
             NatsMessage<NatsGamblingEventPayload> firstTournamentNatsEvent;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("Manager API: Совершение первого (успешного) турнирного выигрыша", () -> {
-            testData.firstTournamentRequest = TournamentRequestBody.builder()
-                    .playerId(testData.registeredPlayer.getWalletData().getWalletUUID())
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+            ctx.firstTournamentRequest = TournamentRequestBody.builder()
+                    .playerId(ctx.registeredPlayer.getWalletData().getWalletUUID())
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(singleTournamentAmount)
                     .transactionId(UUID.randomUUID().toString())
                     .roundId(UUID.randomUUID().toString())
-                    .gameUuid(testData.gameLaunchData.getDbGameSession().getGameUuid())
-                    .providerUuid(testData.gameLaunchData.getDbGameSession().getProviderUuid())
+                    .gameUuid(ctx.gameLaunchData.getDbGameSession().getGameUuid())
+                    .providerUuid(ctx.gameLaunchData.getDbGameSession().getProviderUuid())
                     .build();
 
             var response = managerClient.tournament(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.TOURNAMENT, testData.firstTournamentRequest),
-                    testData.firstTournamentRequest);
+                    utils.createSignature(ApiEndpoints.TOURNAMENT, ctx.firstTournamentRequest),
+                    ctx.firstTournamentRequest);
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.tournament.first_win_status_code");
         });
 
         step("NATS: Ожидание NATS-события tournament_won_from_gamble для первого турнирного выигрыша", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                     NatsEventType.TOURNAMENT_WON_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                            testData.firstTournamentRequest.getTransactionId().equals(payload.getUuid());
+                            ctx.firstTournamentRequest.getTransactionId().equals(payload.getUuid());
 
-            testData.firstTournamentNatsEvent = natsClient.findMessageAsync(
+            ctx.firstTournamentNatsEvent = natsClient.findMessageAsync(
                     subject,
                     NatsGamblingEventPayload.class,
                     filter).get();
 
-            assertNotNull(testData.firstTournamentNatsEvent, "nats.tournament_won_from_gamble_event_for_first_win");
+            assertNotNull(ctx.firstTournamentNatsEvent, "nats.tournament_won_from_gamble_event_for_first_win");
         });
 
-        step("Manager API: Попытка дублирования турнирного выигрыша (повторная отправка с ID: " + testData.firstTournamentRequest.getTransactionId() + ") и проверка идемпотентного ответа", () -> {
+        step("Manager API: Попытка дублирования турнирного выигрыша (повторная отправка с ID: " + ctx.firstTournamentRequest.getTransactionId() + ") и проверка идемпотентного ответа", () -> {
             var duplicateResponse = managerClient.tournament(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.TOURNAMENT, testData.firstTournamentRequest),
-                    testData.firstTournamentRequest
+                    utils.createSignature(ApiEndpoints.TOURNAMENT, ctx.firstTournamentRequest),
+                    ctx.firstTournamentRequest
             );
 
             var responseBody = duplicateResponse.getBody();
@@ -129,7 +129,7 @@ class DuplicateSequentialTournamentWinTest extends BaseTest {
             assertAll("Проверка идемпотентного ответа при дублировании турнирного выигрыша",
                     () -> assertEquals(HttpStatus.OK, duplicateResponse.getStatusCode(), "manager_api.tournament.status_code_on_duplicate"),
                     () -> assertNotNull(responseBody, "manager_api.tournament.body_on_duplicate"),
-                    () -> assertEquals(testData.firstTournamentRequest.getTransactionId(), responseBody.getTransactionId(), "manager_api.tournament.transaction_id_on_duplicate"),
+                    () -> assertEquals(ctx.firstTournamentRequest.getTransactionId(), responseBody.getTransactionId(), "manager_api.tournament.transaction_id_on_duplicate"),
                     () -> assertEquals(0, BigDecimal.ZERO.compareTo(responseBody.getBalance()), "manager_api.tournament.balance_on_duplicate")
             );
         });

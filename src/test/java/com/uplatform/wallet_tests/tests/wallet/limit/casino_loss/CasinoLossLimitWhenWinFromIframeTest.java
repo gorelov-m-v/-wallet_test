@@ -41,7 +41,7 @@ class CasinoLossLimitWhenWinFromIframeTest extends BaseTest {
         final BigDecimal betAmount = new BigDecimal("10.15");
         final BigDecimal winAmount = new BigDecimal("20.77");
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             MakePaymentData betInputData;
             MakePaymentRequest betRequestBody;
@@ -49,34 +49,34 @@ class CasinoLossLimitWhenWinFromIframeTest extends BaseTest {
             BigDecimal expectedRest;
             BigDecimal expectedSpent;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
-        testData.expectedSpent = betAmount.subtract(winAmount);
-        testData.expectedRest = limitAmount.subtract(testData.expectedSpent);
+        ctx.expectedSpent = betAmount.subtract(winAmount);
+        ctx.expectedRest = limitAmount.subtract(ctx.expectedSpent);
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Public API: Установка лимита на проигрыш", () -> {
             var request = SetCasinoLossLimitRequest.builder()
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .type(NatsLimitIntervalType.DAILY)
                     .amount(limitAmount.toString())
                     .startedAt((int) (System.currentTimeMillis() / 1000))
                     .build();
 
             var response = publicClient.setCasinoLossLimit(
-                    testData.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
+                    ctx.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
                     request);
 
             assertEquals(HttpStatus.CREATED, response.getStatusCode(), "public_api.status_code");
 
             step("Sub-step NATS: получение события limit_changed_v2", () -> {
                 var subject = natsClient.buildWalletSubject(
-                        testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                        testData.registeredPlayer.getWalletData().getWalletUUID());
+                        ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                        ctx.registeredPlayer.getWalletData().getWalletUUID());
 
                 BiPredicate<NatsLimitChangedV2Payload, String> filter = (payload, typeHeader) ->
                         NatsEventType.LIMIT_CHANGED_V2.getHeaderValue().equals(typeHeader);
@@ -88,56 +88,56 @@ class CasinoLossLimitWhenWinFromIframeTest extends BaseTest {
         });
 
         step("Manager API: Совершение ставки на спорт", () -> {
-            testData.betInputData = MakePaymentData.builder()
+            ctx.betInputData = MakePaymentData.builder()
                     .type(NatsBettingTransactionOperation.BET)
-                    .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
+                    .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
                     .summ(betAmount.toPlainString())
                     .couponType(NatsBettingCouponType.SINGLE)
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .build();
 
-            testData.betRequestBody = generateRequest(testData.betInputData);
+            ctx.betRequestBody = generateRequest(ctx.betInputData);
 
-            var response = managerClient.makePayment(testData.betRequestBody);
+            var response = managerClient.makePayment(ctx.betRequestBody);
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code");
         });
 
         step("Manager API: Получение выигрыша", () -> {
-            testData.betRequestBody.setSumm(winAmount.toString());
-            testData.betRequestBody.setType(NatsBettingTransactionOperation.WIN);
+            ctx.betRequestBody.setSumm(winAmount.toString());
+            ctx.betRequestBody.setType(NatsBettingTransactionOperation.WIN);
 
-            var response = managerClient.makePayment(testData.betRequestBody);
+            var response = managerClient.makePayment(ctx.betRequestBody);
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code");
 
             step("NATS: Проверка поступления события won_from_iframe", () -> {
                 var subject = natsClient.buildWalletSubject(
-                        testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                        testData.registeredPlayer.getWalletData().getWalletUUID());
+                        ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                        ctx.registeredPlayer.getWalletData().getWalletUUID());
 
                 BiPredicate<NatsBettingEventPayload, String> filter = (payload, typeHeader) ->
                         NatsEventType.WON_FROM_IFRAME.getHeaderValue().equals(typeHeader) &&
-                                testData.betRequestBody.getBetId() == payload.getBetId();
+                                ctx.betRequestBody.getBetId() == payload.getBetId();
 
-                testData.winEvent = natsClient.findMessageAsync(
+                ctx.winEvent = natsClient.findMessageAsync(
                         subject,
                         NatsBettingEventPayload.class,
                         filter).get();
 
-                assertNotNull(testData.winEvent, "nats.event.won_from_iframe");
+                assertNotNull(ctx.winEvent, "nats.event.won_from_iframe");
             });
         });
 
         step("Redis(Wallet): Проверка изменений лимита в агрегате", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.winEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.winEvent.getSequence());
 
             var limit = aggregate.getLimits().get(0);
             assertAll(
-                    () -> assertEquals(0, testData.expectedRest.compareTo(limit.getRest()), "redis.aggregate.limit.rest"),
-                    () -> assertEquals(0, testData.expectedSpent.compareTo(limit.getSpent()), "redis.aggregate.limit.spent"),
+                    () -> assertEquals(0, ctx.expectedRest.compareTo(limit.getRest()), "redis.aggregate.limit.rest"),
+                    () -> assertEquals(0, ctx.expectedSpent.compareTo(limit.getSpent()), "redis.aggregate.limit.spent"),
                     () -> assertEquals(0, limitAmount.compareTo(limit.getAmount()), "redis.aggregate.limit.amount")
             );
         });

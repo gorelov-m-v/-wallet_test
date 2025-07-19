@@ -169,13 +169,13 @@ class BetNegativeParametrizedTest extends BaseParameterizedTest {
     {
         final String validCasinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             BetRequestBody request;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Подготовка некорректного запроса: " + description, () -> {
-            testData.request = BetRequestBody.builder()
+            ctx.request = BetRequestBody.builder()
                     .sessionToken(gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(this.validBetAmount)
                     .transactionId(UUID.randomUUID().toString())
@@ -184,7 +184,7 @@ class BetNegativeParametrizedTest extends BaseParameterizedTest {
                     .roundClosed(false)
                     .build();
 
-            requestModifier.accept(testData.request);
+            requestModifier.accept(ctx.request);
         });
 
         step("Manager API: Попытка некорректной ставки - " + description, () -> {
@@ -192,8 +192,8 @@ class BetNegativeParametrizedTest extends BaseParameterizedTest {
                     FeignException.class,
                     () -> managerClient.bet(
                             validCasinoId,
-                            utils.createSignature(ApiEndpoints.BET, testData.request),
-                            testData.request
+                            utils.createSignature(ApiEndpoints.BET, ctx.request),
+                            ctx.request
                     ),
                     "manager_api.bet"
             );

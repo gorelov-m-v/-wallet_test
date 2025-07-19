@@ -169,13 +169,13 @@ class WinNegativeParametrizedTest extends BaseParameterizedTest {
     ) {
         final String validCasinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             WinRequestBody request;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Подготовка некорректного запроса: " + description, () -> {
-            testData.request = WinRequestBody.builder()
+            ctx.request = WinRequestBody.builder()
                     .sessionToken(this.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(this.validWinAmount)
                     .transactionId(UUID.randomUUID().toString())
@@ -184,7 +184,7 @@ class WinNegativeParametrizedTest extends BaseParameterizedTest {
                     .roundClosed(true)
                     .build();
 
-            requestModifier.accept(testData.request);
+            requestModifier.accept(ctx.request);
         });
 
         step("Manager API: Отправка некорректного запроса и проверка ошибки", () -> {
@@ -192,8 +192,8 @@ class WinNegativeParametrizedTest extends BaseParameterizedTest {
                     FeignException.class,
                     () -> managerClient.win(
                             validCasinoId,
-                            utils.createSignature(ApiEndpoints.WIN, testData.request),
-                            testData.request
+                            utils.createSignature(ApiEndpoints.WIN, ctx.request),
+                            ctx.request
                     ),
                     "manager_api.win.exception"
             );

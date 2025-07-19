@@ -116,7 +116,7 @@ class RefundDisplacedBetParameterizedTest extends BaseParameterizedTest {
 
         final int currentTransactionCountToMake = maxGamblingCountInRedis + 1;
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             List<BetRequestBody> madeBetsRequests = new ArrayList<>();
@@ -126,35 +126,35 @@ class RefundDisplacedBetParameterizedTest extends BaseParameterizedTest {
             BigDecimal currentCalculatedBalance;
             BigDecimal balanceFromApiAfterAllBets;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            testData.currentCalculatedBalance = testData.registeredPlayer.getWalletData().getBalance();
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            ctx.currentCalculatedBalance = ctx.registeredPlayer.getWalletData().getBalance();
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.game_session");
         });
 
         step("Manager API: Совершение " + currentTransactionCountToMake + " ставок типа " + typeParam + " на сумму " + betAmountParam, () -> {
             for (int i = 0; i < currentTransactionCountToMake; i++) {
                 var transactionId = UUID.randomUUID().toString();
                 if (i == currentTransactionCountToMake - 1) {
-                    testData.lastMadeBetTransactionId = transactionId;
+                    ctx.lastMadeBetTransactionId = transactionId;
                 }
 
                 var betRequestBody = BetRequestBody.builder()
-                        .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                        .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                         .amount(betAmountParam)
                         .transactionId(transactionId)
                         .type(typeParam)
                         .roundId(UUID.randomUUID().toString())
                         .roundClosed(false)
                         .build();
-                testData.madeBetsRequests.add(betRequestBody);
+                ctx.madeBetsRequests.add(betRequestBody);
 
                 var currentBetNumber = i + 1;
                 var currentTxId = transactionId;
@@ -166,76 +166,76 @@ class RefundDisplacedBetParameterizedTest extends BaseParameterizedTest {
                             betRequestBody);
 
                     assertNotNull(response.getBody(), "manager_api.bet.body_not_null");
-                    testData.currentCalculatedBalance = testData.currentCalculatedBalance.subtract(betAmountParam);
+                    ctx.currentCalculatedBalance = ctx.currentCalculatedBalance.subtract(betAmountParam);
 
                     assertAll("Проверка ответа API для ставки #" + currentBetNumber,
                             () -> assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.status_code"),
                             () -> assertEquals(currentTxId, response.getBody().getTransactionId(), "manager_api.body.transactionId"),
-                            () -> assertEquals(0, testData.currentCalculatedBalance.compareTo(response.getBody().getBalance()), "manager_api.body.balance")
+                            () -> assertEquals(0, ctx.currentCalculatedBalance.compareTo(response.getBody().getBalance()), "manager_api.body.balance")
                     );
 
                     if (currentBetNumber == currentTransactionCountToMake) {
-                        testData.balanceFromApiAfterAllBets = response.getBody().getBalance();
+                        ctx.balanceFromApiAfterAllBets = response.getBody().getBalance();
                     }
                 });
             }
 
-            assertEquals(currentTransactionCountToMake, testData.madeBetsRequests.size(), "bet.list.size");
+            assertEquals(currentTransactionCountToMake, ctx.madeBetsRequests.size(), "bet.list.size");
         });
 
         step("NATS: Ожидание NATS-события betted_from_gamble для последней ставки", () -> {
             var subject = natsClient.buildWalletSubject(
-                    testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                    testData.registeredPlayer.getWalletData().getWalletUUID());
+                    ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                    ctx.registeredPlayer.getWalletData().getWalletUUID());
 
             BiPredicate<NatsGamblingEventPayload, String> filter = (payload, natsTypeHeader) ->
                     NatsEventType.BETTED_FROM_GAMBLE.getHeaderValue().equals(natsTypeHeader) &&
-                            testData.lastMadeBetTransactionId.equals(payload.getUuid());
+                            ctx.lastMadeBetTransactionId.equals(payload.getUuid());
 
-            testData.lastBetNatsEvent = natsClient.findMessageAsync(
+            ctx.lastBetNatsEvent = natsClient.findMessageAsync(
                     subject,
                     NatsGamblingEventPayload.class,
                     filter).get();
 
-            assertNotNull(testData.lastBetNatsEvent, "nats.betted_from_gamble");
+            assertNotNull(ctx.lastBetNatsEvent, "nats.betted_from_gamble");
         });
 
         step("Redis: Определение вытесненной ставки", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.lastBetNatsEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.lastBetNatsEvent.getSequence());
 
             var gamblingTransactionsInRedis = aggregate.getGambling();
             var transactionIdsCurrentlyInRedis = gamblingTransactionsInRedis.keySet();
-            var displacedTransactionIds = testData.madeBetsRequests.stream()
+            var displacedTransactionIds = ctx.madeBetsRequests.stream()
                     .map(BetRequestBody::getTransactionId).collect(Collectors.toCollection(HashSet::new));
             displacedTransactionIds.removeAll(transactionIdsCurrentlyInRedis);
             assertEquals(1, displacedTransactionIds.size(), "redis.displaced_transaction.expected_single");
             var displacedTxId = displacedTransactionIds.iterator().next();
 
-            testData.betToRefundRequest = testData.madeBetsRequests.stream()
+            ctx.betToRefundRequest = ctx.madeBetsRequests.stream()
                     .filter(betReq -> betReq.getTransactionId().equals(displacedTxId))
                     .findFirst()
                     .orElseThrow(() -> new AssertionError("test.displaced_request.not_found"));
 
-            assertEquals(0, betAmountParam.compareTo(testData.betToRefundRequest.getAmount()), "bet.displaced.amount_mismatch");
+            assertEquals(0, betAmountParam.compareTo(ctx.betToRefundRequest.getAmount()), "bet.displaced.amount_mismatch");
         });
 
         step("Manager API: Рефанд вытесненной ставки", () -> {
 
             RefundRequestBody refundRequestBody = RefundRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
-                    .amount(testData.betToRefundRequest.getAmount())
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                    .amount(ctx.betToRefundRequest.getAmount())
                     .transactionId(UUID.randomUUID().toString())
-                    .betTransactionId(testData.betToRefundRequest.getTransactionId())
-                    .roundId(testData.betToRefundRequest.getRoundId())
+                    .betTransactionId(ctx.betToRefundRequest.getTransactionId())
+                    .roundId(ctx.betToRefundRequest.getRoundId())
                     .roundClosed(true)
-                    .playerId(testData.registeredPlayer.getWalletData().getWalletUUID())
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
-                    .gameUuid(testData.gameLaunchData.getDbGameSession().getGameUuid())
+                    .playerId(ctx.registeredPlayer.getWalletData().getWalletUUID())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
+                    .gameUuid(ctx.gameLaunchData.getDbGameSession().getGameUuid())
                     .build();
 
-            var expectedBalanceInApiResponse = testData.balanceFromApiAfterAllBets.add(refundRequestBody.getAmount());
+            var expectedBalanceInApiResponse = ctx.balanceFromApiAfterAllBets.add(refundRequestBody.getAmount());
 
             var response = managerClient.refund(
                     casinoId,

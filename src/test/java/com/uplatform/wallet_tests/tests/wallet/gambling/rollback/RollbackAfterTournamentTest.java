@@ -64,52 +64,52 @@ class RollbackAfterTournamentTest extends BaseTest {
     void testRollbackForTournamentTransactionReturnsError() {
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             TournamentRequestBody tournamentRequest;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(initialAdjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.game_session");
         });
 
         step("Manager API: Начисление турнирного выигрыша", () -> {
-            testData.tournamentRequest = TournamentRequestBody.builder()
+            ctx.tournamentRequest = TournamentRequestBody.builder()
                     .amount(tournamentAmount)
-                    .playerId(testData.registeredPlayer.getWalletData().getWalletUUID())
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                    .playerId(ctx.registeredPlayer.getWalletData().getWalletUUID())
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .transactionId(UUID.randomUUID().toString())
-                    .gameUuid(testData.gameLaunchData.getDbGameSession().getGameUuid())
+                    .gameUuid(ctx.gameLaunchData.getDbGameSession().getGameUuid())
                     .roundId(UUID.randomUUID().toString())
-                    .providerUuid(testData.gameLaunchData.getDbGameSession().getProviderUuid())
+                    .providerUuid(ctx.gameLaunchData.getDbGameSession().getProviderUuid())
                     .build();
 
             var response = managerClient.tournament(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.TOURNAMENT, testData.tournamentRequest),
-                    testData.tournamentRequest);
+                    utils.createSignature(ApiEndpoints.TOURNAMENT, ctx.tournamentRequest),
+                    ctx.tournamentRequest);
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.tournament.status_code");
         });
 
         step("Manager API: Попытка выполнения роллбэка для турнирного выигрыша", () -> {
             var request = RollbackRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
                     .amount(tournamentAmount)
                     .transactionId(UUID.randomUUID().toString())
-                    .rollbackTransactionId(testData.tournamentRequest.getTransactionId())
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
-                    .playerId(testData.registeredPlayer.getWalletData().getWalletUUID())
-                    .gameUuid(testData.gameLaunchData.getDbGameSession().getGameUuid())
-                    .roundId(testData.tournamentRequest.getRoundId())
+                    .rollbackTransactionId(ctx.tournamentRequest.getTransactionId())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
+                    .playerId(ctx.registeredPlayer.getWalletData().getWalletUUID())
+                    .gameUuid(ctx.gameLaunchData.getDbGameSession().getGameUuid())
+                    .roundId(ctx.tournamentRequest.getRoundId())
                     .roundClosed(true)
                     .build();
 

@@ -44,14 +44,14 @@ class FullRegistrationDebugTest extends BaseTest {
     @Test
     @DisplayName("Полная регистрация игрока с KYC")
     void shouldRegisterPlayerWithKyc() {
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Полная регистрация игрока с KYC", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayerWithKyc();
-            assertNotNull(testData.registeredPlayer, "default_step.registration_with_kyc");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayerWithKyc();
+            assertNotNull(ctx.registeredPlayer, "default_step.registration_with_kyc");
         });
     }
 }

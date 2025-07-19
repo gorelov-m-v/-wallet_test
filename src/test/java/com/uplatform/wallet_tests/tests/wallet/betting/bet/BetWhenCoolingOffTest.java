@@ -57,20 +57,20 @@ class BetWhenCoolingOffTest extends BaseTest {
     void shouldRejectBetWhenCoolingOff() {
         final BigDecimal betAmount = new BigDecimal("10.15");
         final BigDecimal adjustmentAmount = new BigDecimal("150.00");
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(adjustmentAmount);
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("FAPI: Установка самоограничения игрока", () -> {
             var request = new PlayerRestrictionsRequest(RestrictionExpireType.DAY);
             var response = publicClient.getPlayerRestrictions(
-                    testData.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
+                    ctx.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
                     request
             );
             assertEquals(HttpStatus.CREATED, response.getStatusCode(), "fapi.restrictions.status_code");
@@ -86,10 +86,10 @@ class BetWhenCoolingOffTest extends BaseTest {
 
             var data = MakePaymentData.builder()
                     .type(NatsBettingTransactionOperation.BET)
-                    .playerId(testData.registeredPlayer.getWalletData().getPlayerUUID())
+                    .playerId(ctx.registeredPlayer.getWalletData().getPlayerUUID())
                     .summ(betAmount.toPlainString())
                     .couponType(NatsBettingCouponType.SINGLE)
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .build();
 
             var request = generateRequest(data);

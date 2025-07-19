@@ -53,7 +53,7 @@ class CasinoLossLimitWhenBetFromGambleParameterizedTest extends BaseParameterize
     ) {
         final String casinoId = configProvider.getEnvironmentConfig().getApi().getManager().getCasinoId();
 
-        final class TestData {
+        final class TestContext {
             RegisteredPlayerData registeredPlayer;
             GameLaunchData gameLaunchData;
             BetRequestBody betRequestBody;
@@ -63,41 +63,41 @@ class CasinoLossLimitWhenBetFromGambleParameterizedTest extends BaseParameterize
             BigDecimal expectedRestAmountAfterBet;
             BigDecimal expectedSpentAmountAfterBet;
         }
-        final TestData testData = new TestData();
+        final TestContext ctx = new TestContext();
 
-        testData.limitAmount =  new BigDecimal("150.12");
-        testData.betAmount = new BigDecimal("10.15");
-        testData.expectedSpentAmountAfterBet = testData.betAmount;
-        testData.expectedRestAmountAfterBet = testData.limitAmount.subtract(testData.betAmount);
+        ctx.limitAmount =  new BigDecimal("150.12");
+        ctx.betAmount = new BigDecimal("10.15");
+        ctx.expectedSpentAmountAfterBet = ctx.betAmount;
+        ctx.expectedRestAmountAfterBet = ctx.limitAmount.subtract(ctx.betAmount);
 
         step("Default Step: Регистрация нового пользователя", () -> {
-            testData.registeredPlayer = defaultTestSteps.registerNewPlayer(new BigDecimal("2000.00"));
-            assertNotNull(testData.registeredPlayer, "default_step.registration");
+            ctx.registeredPlayer = defaultTestSteps.registerNewPlayer(new BigDecimal("2000.00"));
+            assertNotNull(ctx.registeredPlayer, "default_step.registration");
         });
 
         step("Default Step: Создание игровой сессии", () -> {
-            testData.gameLaunchData = defaultTestSteps.createGameSession(testData.registeredPlayer);
-            assertNotNull(testData.gameLaunchData, "default_step.create_game_session");
+            ctx.gameLaunchData = defaultTestSteps.createGameSession(ctx.registeredPlayer);
+            assertNotNull(ctx.gameLaunchData, "default_step.create_game_session");
         });
 
         step("Public API: Установка лимита на проигрыш", () -> {
             var request = SetCasinoLossLimitRequest.builder()
-                    .currency(testData.registeredPlayer.getWalletData().getCurrency())
+                    .currency(ctx.registeredPlayer.getWalletData().getCurrency())
                     .type(NatsLimitIntervalType.DAILY)
-                    .amount(testData.limitAmount.toString())
+                    .amount(ctx.limitAmount.toString())
                     .startedAt((int) (System.currentTimeMillis() / 1000))
                     .build();
 
             var response = publicClient.setCasinoLossLimit(
-                    testData.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
+                    ctx.registeredPlayer.getAuthorizationResponse().getBody().getToken(),
                     request);
 
             assertEquals(HttpStatus.CREATED, response.getStatusCode(), "fapi.set_casino_loss_limit.status_code");
 
             step("Sub-step NATS: получение события limit_changed_v2", () -> {
                 var subject = natsClient.buildWalletSubject(
-                        testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                        testData.registeredPlayer.getWalletData().getWalletUUID());
+                        ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                        ctx.registeredPlayer.getWalletData().getWalletUUID());
 
                 BiPredicate<NatsLimitChangedV2Payload, String> filter = (payload, typeHeader) ->
                         NatsEventType.LIMIT_CHANGED_V2.getHeaderValue().equals(typeHeader);
@@ -109,9 +109,9 @@ class CasinoLossLimitWhenBetFromGambleParameterizedTest extends BaseParameterize
         });
 
         step("Manager API: Совершение ставки", () -> {
-            testData.betRequestBody = BetRequestBody.builder()
-                    .sessionToken(testData.gameLaunchData.getDbGameSession().getGameSessionUuid())
-                    .amount(testData.betAmount)
+            ctx.betRequestBody = BetRequestBody.builder()
+                    .sessionToken(ctx.gameLaunchData.getDbGameSession().getGameSessionUuid())
+                    .amount(ctx.betAmount)
                     .transactionId(UUID.randomUUID().toString())
                     .type(type)
                     .roundId(UUID.randomUUID().toString())
@@ -120,38 +120,38 @@ class CasinoLossLimitWhenBetFromGambleParameterizedTest extends BaseParameterize
 
             var response = managerClient.bet(
                     casinoId,
-                    utils.createSignature(ApiEndpoints.BET, testData.betRequestBody),
-                    testData.betRequestBody);
+                    utils.createSignature(ApiEndpoints.BET, ctx.betRequestBody),
+                    ctx.betRequestBody);
 
             assertEquals(HttpStatus.OK, response.getStatusCode(), "manager_api.bet.status_code");
 
             step("Sub-step NATS: Проверка поступления события betted_from_gamble", () -> {
                 var subject = natsClient.buildWalletSubject(
-                        testData.registeredPlayer.getWalletData().getPlayerUUID(),
-                        testData.registeredPlayer.getWalletData().getWalletUUID());
+                        ctx.registeredPlayer.getWalletData().getPlayerUUID(),
+                        ctx.registeredPlayer.getWalletData().getWalletUUID());
 
                 BiPredicate<NatsGamblingEventPayload, String> filter = (payload, typeHeader) ->
                         NatsEventType.BETTED_FROM_GAMBLE.getHeaderValue().equals(typeHeader) &&
-                                testData.betRequestBody.getTransactionId().equals(payload.getUuid());
+                                ctx.betRequestBody.getTransactionId().equals(payload.getUuid());
 
-                testData.betEvent = natsClient.findMessageAsync(
+                ctx.betEvent = natsClient.findMessageAsync(
                         subject,
                         NatsGamblingEventPayload.class,
                         filter).get();
 
-                assertNotNull(testData.betEvent, "nats.event.betted_from_gamble");
+                assertNotNull(ctx.betEvent, "nats.event.betted_from_gamble");
             });
         });
 
         step("Redis(Wallet): Проверка изменений лимита в агрегате", () -> {
             var aggregate = redisClient.getWalletDataWithSeqCheck(
-                    testData.registeredPlayer.getWalletData().getWalletUUID(),
-                    (int) testData.betEvent.getSequence());
+                    ctx.registeredPlayer.getWalletData().getWalletUUID(),
+                    (int) ctx.betEvent.getSequence());
 
             assertAll(
-                    () -> assertEquals(0, testData.expectedRestAmountAfterBet.compareTo(aggregate.getLimits().get(0).getRest()), "redis.wallet.limit.rest"),
-                    () -> assertEquals(0, testData.expectedSpentAmountAfterBet.compareTo(aggregate.getLimits().get(0).getSpent()), "redis.wallet.limit.spent"),
-                    () -> assertEquals(0, testData.limitAmount.compareTo(aggregate.getLimits().get(0).getAmount()), "redis.wallet.limit.amount")
+                    () -> assertEquals(0, ctx.expectedRestAmountAfterBet.compareTo(aggregate.getLimits().get(0).getRest()), "redis.wallet.limit.rest"),
+                    () -> assertEquals(0, ctx.expectedSpentAmountAfterBet.compareTo(aggregate.getLimits().get(0).getSpent()), "redis.wallet.limit.spent"),
+                    () -> assertEquals(0, ctx.limitAmount.compareTo(aggregate.getLimits().get(0).getAmount()), "redis.wallet.limit.amount")
             );
         });
     }
