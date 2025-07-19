@@ -12,7 +12,7 @@ public class EnvironmentConfig {
     private ApiConfig api;
     private PlatformConfig platform;
     private Map<String, DatabaseInstanceConfig> databases;
-    private RedisConfig redis;
+    private RedisSettings redis;
     private KafkaConfig kafka;
     private NatsConfig nats;
 

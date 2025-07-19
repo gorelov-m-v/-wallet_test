@@ -64,7 +64,7 @@ public class DynamicPropertiesConfigurator implements ApplicationContextInitiali
             });
         }
 
-        RedisConfig redisFullConfig = config.getRedis();
+        RedisSettings redisFullConfig = config.getRedis();
 
         if (redisFullConfig != null) {
             RedisAggregateConfig aggregateConfig = redisFullConfig.getAggregate();
